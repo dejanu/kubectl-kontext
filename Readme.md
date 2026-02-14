@@ -19,8 +19,9 @@ Kubernetes cluster assessment plugin optimized for AI analysis.
 ## Install
 
 ```bash
-sudo cp kubectl-assess /usr/local/bin/
-export PATH="$PATH:$(pwd)"  
+kubectl krew index add custom-assess-index https://github.com/dejanu/k8s_assess/blob/main/plugins/assess.yaml
+
+kubectl krew install custom-assess-index/assess
 ```
 
 ## Usage
