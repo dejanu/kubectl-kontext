@@ -49,8 +49,8 @@ CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
 CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
 TOTAL_NODES=$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')
 TOTAL_PODS=$(kubectl get pods -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
-PODS_NO_LIMITS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(.spec.containers[] | .resources.limits == null or .resources.limits == {})] | length')
-PODS_NO_REQUESTS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(.spec.containers[] | .resources.requests == null or .resources.requests == {})] | length')
+PODS_NO_LIMITS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {}))] | length')
+PODS_NO_REQUESTS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {}))] | length')
 WARNING_EVENTS=$(kubectl get events -A --field-selector type=Warning --no-headers 2>/dev/null | wc -l | tr -d ' ')
 PENDING_PODS=$(kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l | tr -d ' ')
 HIGH_RESTART_PODS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.containerStatuses != null) | select([.status.containerStatuses[].restartCount] | add > 10)] | length')
@@ -74,14 +74,7 @@ echo ""
 
 # 2. Node Summary with Resources
 echo "## NODES"
-kubectl get nodes -o custom-columns='\
-NAME:.metadata.name,\
-STATUS:.status.conditions[?(@.type=="Ready")].status,\
-ROLES:.metadata.labels.node-role\.kubernetes\.io/control-plane,\
-VERSION:.status.nodeInfo.kubeletVersion,\
-CPU:.status.allocatable.cpu,\
-MEMORY:.status.allocatable.memory,\
-PODS_CAPACITY:.status.allocatable.pods'
+kubectl get nodes -o custom-columns='NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status,ROLES:.metadata.labels.node-role\.kubernetes\.io/control-plane,VERSION:.status.nodeInfo.kubeletVersion,CPU:.status.allocatable.cpu,MEMORY:.status.allocatable.memory,PODS_CAPACITY:.status.allocatable.pods'
 echo ""
 
 # 3. Node Resource Allocation (Critical for overcommitment analysis)
@@ -92,33 +85,54 @@ for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
     echo ""
 done
 
+# 3b. Cluster-wide resource totals
+echo "## CLUSTER-WIDE RESOURCE TOTALS"
+kubectl get nodes -o json 2>/dev/null | jq -r '
+  def parse_cpu: if endswith("m") then rtrimstr("m") | tonumber else tonumber * 1000 end;
+  def parse_mem: if endswith("Ki") then (rtrimstr("Ki") | tonumber / 1024)
+    elif endswith("Mi") then (rtrimstr("Mi") | tonumber)
+    elif endswith("Gi") then (rtrimstr("Gi") | tonumber * 1024)
+    else 0 end;
+  "Total Allocatable CPU: \([.items[].status.allocatable.cpu | parse_cpu] | add)m",
+  "Total Allocatable Memory: \([.items[].status.allocatable.memory | parse_mem] | add | round)Mi"
+' 2>/dev/null || echo "Unable to compute"
+echo ""
+
 # 4. Resource Summary
 echo "## RESOURCE SUMMARY"
-echo "Total pods: $(kubectl get pods -A --no-headers 2>/dev/null | wc -l | tr -d ' ')"
-echo ""
 echo "Pods by namespace:"
 kubectl get pods -A --no-headers | awk '{print $1}' | sort | uniq -c | sort -rn | head -15
 echo ""
 
 # 5. Pods Without Resource Configuration
 echo "## PODS WITHOUT RESOURCE LIMITS"
-kubectl get pods -A -o json | jq -r '
-.items[] |
+PODS_LIMITS_OUTPUT=$(kubectl get pods -A -o json 2>/dev/null | jq -r '
+[.items[] |
 select(.status.phase == "Running") |
-select(.spec.containers[] | .resources.limits == null or .resources.limits == {}) |
-[.metadata.namespace, .metadata.name] | @tsv' 2>/dev/null | head -30
-echo ""
-echo "Count: $(kubectl get pods -A -o json | jq -r '.items[] | select(.status.phase == "Running") | select(.spec.containers[] | .resources.limits == null or .resources.limits == {}) | .metadata.name' 2>/dev/null | wc -l | tr -d ' ')"
+select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {})) |
+[.metadata.namespace, .metadata.name] | @tsv] | unique[] ' 2>/dev/null | head -30)
+if [[ -n "$PODS_LIMITS_OUTPUT" ]]; then
+    echo "$PODS_LIMITS_OUTPUT"
+    echo ""
+    echo "Count: $(echo "$PODS_LIMITS_OUTPUT" | wc -l | tr -d ' ')"
+else
+    echo "None"
+fi
 echo ""
 
 echo "## PODS WITHOUT RESOURCE REQUESTS"
-kubectl get pods -A -o json | jq -r '
-.items[] |
+PODS_REQUESTS_OUTPUT=$(kubectl get pods -A -o json 2>/dev/null | jq -r '
+[.items[] |
 select(.status.phase == "Running") |
-select(.spec.containers[] | .resources.requests == null or .resources.requests == {}) |
-[.metadata.namespace, .metadata.name] | @tsv' 2>/dev/null | head -30
-echo ""
-echo "Count: $(kubectl get pods -A -o json | jq -r '.items[] | select(.status.phase == "Running") | select(.spec.containers[] | .resources.requests == null or .resources.requests == {}) | .metadata.name' 2>/dev/null | wc -l | tr -d ' ')"
+select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {})) |
+[.metadata.namespace, .metadata.name] | @tsv] | unique[]' 2>/dev/null | head -30)
+if [[ -n "$PODS_REQUESTS_OUTPUT" ]]; then
+    echo "$PODS_REQUESTS_OUTPUT"
+    echo ""
+    echo "Count: $(echo "$PODS_REQUESTS_OUTPUT" | wc -l | tr -d ' ')"
+else
+    echo "None"
+fi
 echo ""
 
 # 6. High Memory Limit Pods (Top 10)
@@ -150,16 +164,19 @@ echo ""
 
 # 8. Warning Events
 echo "## RECENT WARNING EVENTS"
-kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' 2>/dev/null | tail -20
+WARN_OUTPUT=$(kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' 2>/dev/null | tail -20)
+if [[ -n "$WARN_OUTPUT" ]]; then echo "$WARN_OUTPUT"; else echo "None"; fi
 echo ""
 
 # 9. Pending/Problem Pods
 echo "## PROBLEM PODS"
 echo "Pending:"
-kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null || echo "None"
+PENDING_OUTPUT=$(kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null)
+if [[ -n "$PENDING_OUTPUT" ]]; then echo "$PENDING_OUTPUT"; else echo "None"; fi
 echo ""
 echo "Failed:"
-kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null || echo "None"
+FAILED_OUTPUT=$(kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null)
+if [[ -n "$FAILED_OUTPUT" ]]; then echo "$FAILED_OUTPUT"; else echo "None"; fi
 echo ""
 
 # 10. Storage Classes
@@ -174,11 +191,13 @@ echo ""
 
 # 12. LimitRanges and ResourceQuotas
 echo "## LIMIT RANGES"
-kubectl get limitranges -A --no-headers 2>/dev/null || echo "None configured"
+LR_OUTPUT=$(kubectl get limitranges -A --no-headers 2>/dev/null)
+if [[ -n "$LR_OUTPUT" ]]; then echo "$LR_OUTPUT"; else echo "None configured"; fi
 echo ""
 
 echo "## RESOURCE QUOTAS"
-kubectl get resourcequotas -A --no-headers 2>/dev/null || echo "None configured"
+RQ_OUTPUT=$(kubectl get resourcequotas -A --no-headers 2>/dev/null)
+if [[ -n "$RQ_OUTPUT" ]]; then echo "$RQ_OUTPUT"; else echo "None configured"; fi
 echo ""
 
 # 13. Network Policies Summary
