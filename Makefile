@@ -1,0 +1,21 @@
+PLUGIN_NAME=kubectl-assess
+VERSION?=v1.0.0
+PLATFORMS=darwin-amd64 linux-amd64
+
+.PHONY: all archives sha clean
+
+all: archives sha
+
+archives:
+	@for platform in $(PLATFORMS); do \
+	  tar -czf $(PLUGIN_NAME)-$$platform.tar.gz $(PLUGIN_NAME); \
+	done
+
+sha:
+	@for platform in $(PLATFORMS); do \
+	  echo "$$platform:"; \
+	  shasum -a 256 $(PLUGIN_NAME)-$$platform.tar.gz | awk '{print $$1}'; \
+	done
+
+clean:
+	rm -f $(PLUGIN_NAME)-*.tar.gz
