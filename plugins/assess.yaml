@@ -12,14 +12,14 @@ spec:
     - selector:
         matchLabels:
           os: darwin
-          arch: amd64
+          arch: arm64
       uri: "https://github.com/your-org/kubectl-assess/releases/download/v1.0.0/kubectl-assess-darwin-amd64.tar.gz"
       sha256: "93c3d6cdefebfd8f0772f683481675b758f79eddffd8b356b28524853323c127"
       bin: "kubectl-assess"
     - selector:
         matchLabels:
           os: linux
-          arch: amd64
+          arch: arm64
       uri: "https://github.com/your-org/kubectl-assess/releases/download/v1.0.0/kubectl-assess-linux-amd64.tar.gz"
       sha256: "93c3d6cdefebfd8f0772f683481675b758f79eddffd8b356b28524853323c127"
       bin: "kubectl-assess"

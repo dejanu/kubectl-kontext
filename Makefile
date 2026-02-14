@@ -1,6 +1,6 @@
 PLUGIN_NAME=kubectl-assess
 VERSION?=v1.0.0
-PLATFORMS=darwin-amd64 linux-amd64
+PLATFORMS=darwin-arm64 linux-arm64
 
 .PHONY: all archives sha clean
 
