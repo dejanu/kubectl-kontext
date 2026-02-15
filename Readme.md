@@ -34,7 +34,11 @@ kubectl krew install alex-index/assess
 * For unix composition with claude code in headless mode
 
 ```bash
+kubectl assess | pbcopy 
+
 # Quick assessment
+kubectl assess | claude --model sonnet -p 'List critical issues and recommendations'
+
 kubectl assess | claude --model sonnet -p 'Analyze this cluster for. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
 
 # K3s evaluation
@@ -43,10 +47,4 @@ kubectl assess | claude --model sonnet -p 'Based on this report, is K3s suitable
 # Quick health check (fast/cheap)
 kubectl assess | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
 
-
-#Built-in analysis modes (require claude CLI):
-kubectl assess --analyze              # Comprehensive cluster analysis
-kubectl assess --health               # Quick health check
-kubectl assess --security             # Security-focused review
-kubectl assess --capacity             # Capacity planning focus
 ```

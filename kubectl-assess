@@ -8,7 +8,7 @@
 #
 # Usage:
 #   kubectl assess                              # Output to stdout
-#   kubectl assess | claude -p 'Analyze...'    # Pipe to AI
+#   kubectl assess | claude -p 'Analyze...'     # Pipe to AI
 #   kubectl assess --help                       # Show help
 
 set -euo pipefail
@@ -33,27 +33,65 @@ EOF
 fi
 
 # Check dependencies
-# if ! command -v jq &>/dev/null; then
-#     echo "Error: jq is required but not installed" >&2
-#     exit 1
-# fi
+if ! command -v jq &>/dev/null; then
+    echo "Error: jq is required but not installed" >&2
+    exit 1
+fi
 
+# Temp directory for cached data and parallel section output
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+# --- Phase 1: Fetch heavy data in parallel ---
+kubectl get pods -A -o json 2>/dev/null > "$TMPDIR/pods.json" &
+pid_pods=$!
+kubectl get nodes -o json 2>/dev/null > "$TMPDIR/nodes.json" &
+pid_nodes=$!
+kubectl get events -A --field-selector type=Warning -o json 2>/dev/null > "$TMPDIR/events.json" &
+pid_events=$!
+wait $pid_pods $pid_nodes $pid_events
+
+# Cache commonly derived data
+PODS_JSON="$TMPDIR/pods.json"
+NODES_JSON="$TMPDIR/nodes.json"
+
+# --- Phase 2: Compute independent sections in parallel ---
+
+# Section: Storage classes, PDBs, LimitRanges, Quotas, NetworkPolicies, Taints (all independent)
+kubectl get storageclasses -o custom-columns='NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storageclass\.kubernetes\.io/is-default-class' 2>/dev/null > "$TMPDIR/storageclasses.txt" &
+kubectl get pdb -A --no-headers 2>/dev/null > "$TMPDIR/pdb.txt" &
+kubectl get limitranges -A --no-headers 2>/dev/null > "$TMPDIR/limitranges.txt" &
+kubectl get resourcequotas -A --no-headers 2>/dev/null > "$TMPDIR/quotas.txt" &
+kubectl get networkpolicies -A --no-headers 2>/dev/null > "$TMPDIR/netpol.txt" &
+kubectl get networkpolicies -A -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name' --no-headers 2>/dev/null > "$TMPDIR/netpol_detail.txt" &
+kubectl get deployments -A -o json 2>/dev/null > "$TMPDIR/deployments.json" &
+kubectl get statefulsets -A -o json 2>/dev/null > "$TMPDIR/statefulsets.json" &
+kubectl get daemonsets -A -o json 2>/dev/null > "$TMPDIR/daemonsets.json" &
+kubectl get rollouts -A -o json 2>/dev/null > "$TMPDIR/rollouts.json" || echo '{"items":[]}' > "$TMPDIR/rollouts.json" &
+kubectl top nodes --no-headers 2>/dev/null > "$TMPDIR/top_nodes.txt" &
+kubectl top pods -A --no-headers --sort-by=cpu 2>/dev/null > "$TMPDIR/top_pods_cpu.txt" &
+kubectl top pods -A --no-headers --sort-by=memory 2>/dev/null > "$TMPDIR/top_pods_mem.txt" &
+kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null > "$TMPDIR/pending.txt" &
+kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null > "$TMPDIR/failed.txt" &
+wait
+
+# --- Phase 3: Assemble report in order ---
 {
 echo "=== KUBERNETES CLUSTER ASSESSMENT REPORT ==="
-echo "Cluster: $(kubectl config current-context 2>/dev/null || echo 'unknown')"
+CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
+CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
+echo "Cluster: $CLUSTER_NAME"
 echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 echo ""
 
-# Quick metrics for AI summary
-CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
-CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
-TOTAL_NODES=$(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')
-TOTAL_PODS=$(kubectl get pods -A --no-headers 2>/dev/null | wc -l | tr -d ' ')
-PODS_NO_LIMITS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {}))] | length')
-PODS_NO_REQUESTS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {}))] | length')
-WARNING_EVENTS=$(kubectl get events -A --field-selector type=Warning --no-headers 2>/dev/null | wc -l | tr -d ' ')
-PENDING_PODS=$(kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null | wc -l | tr -d ' ')
-HIGH_RESTART_PODS=$(kubectl get pods -A -o json 2>/dev/null | jq '[.items[] | select(.status.containerStatuses != null) | select([.status.containerStatuses[].restartCount] | add > 10)] | length')
+# Quick Summary — all from cached JSON
+TOTAL_NODES=$(jq '.items | length' "$NODES_JSON")
+TOTAL_PODS=$(jq '.items | length' "$PODS_JSON")
+PODS_NO_LIMITS=$(jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {}))] | length' "$PODS_JSON")
+PODS_NO_REQUESTS=$(jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {}))] | length' "$PODS_JSON")
+WARNING_EVENTS=$(jq '.items | length' "$TMPDIR/events.json" 2>/dev/null)
+PENDING_PODS=$(wc -l < "$TMPDIR/pending.txt" | tr -d ' ')
+HIGH_RESTART_PODS=$(jq '[.items[] | select(.status.containerStatuses != null) | select([.status.containerStatuses[].restartCount] | add > 10)] | length' "$PODS_JSON")
 
 echo "## QUICK SUMMARY (for AI)"
 echo "- Cluster Name: $CLUSTER_NAME"
@@ -72,14 +110,24 @@ echo "## CLUSTER OVERVIEW"
 kubectl version --short 2>/dev/null || kubectl version | grep -E "Server|Client" | head -2
 echo ""
 
-# 2. Node Summary with Resources
+# 2. Node Summary
 echo "## NODES"
-kubectl get nodes -o custom-columns='NAME:.metadata.name,STATUS:.status.conditions[?(@.type=="Ready")].status,ROLES:.metadata.labels.node-role\.kubernetes\.io/control-plane,VERSION:.status.nodeInfo.kubeletVersion,CPU:.status.allocatable.cpu,MEMORY:.status.allocatable.memory,PODS_CAPACITY:.status.allocatable.pods'
+jq -r '
+  ["NAME","STATUS","ROLES","VERSION","CPU","MEMORY","PODS_CAPACITY"],
+  (.items[] | [
+    .metadata.name,
+    (if (.status.conditions[] | select(.type=="Ready") | .status) == "True" then "True" else "False" end),
+    (.metadata.labels["node-role.kubernetes.io/control-plane"] // "<none>"),
+    .status.nodeInfo.kubeletVersion,
+    .status.allocatable.cpu,
+    .status.allocatable.memory,
+    .status.allocatable.pods
+  ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
 
-# 3. Node Resource Allocation (Critical for overcommitment analysis)
+# 3. Node Resource Allocation
 echo "## NODE RESOURCE ALLOCATION"
-for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}'); do
+for node in $(jq -r '.items[].metadata.name' "$NODES_JSON"); do
     echo "--- $node ---"
     kubectl describe node "$node" | sed -n '/Allocated resources:/,/Events:/p' | head -15
     echo ""
@@ -87,7 +135,7 @@ done
 
 # 3b. Cluster-wide resource totals
 echo "## CLUSTER-WIDE RESOURCE TOTALS"
-kubectl get nodes -o json 2>/dev/null | jq -r '
+jq -r '
   def parse_cpu: if endswith("m") then rtrimstr("m") | tonumber else tonumber * 1000 end;
   def parse_mem: if endswith("Ki") then (rtrimstr("Ki") | tonumber / 1024)
     elif endswith("Mi") then (rtrimstr("Mi") | tonumber)
@@ -95,22 +143,114 @@ kubectl get nodes -o json 2>/dev/null | jq -r '
     else 0 end;
   "Total Allocatable CPU: \([.items[].status.allocatable.cpu | parse_cpu] | add)m",
   "Total Allocatable Memory: \([.items[].status.allocatable.memory | parse_mem] | add | round)Mi"
-' 2>/dev/null || echo "Unable to compute"
+' "$NODES_JSON" 2>/dev/null || echo "Unable to compute"
 echo ""
 
-# 4. Resource Summary
+# 4. Actual Resource Usage (requires metrics-server)
+TOP_NODES=$(cat "$TMPDIR/top_nodes.txt" 2>/dev/null)
+if [[ -n "$TOP_NODES" ]]; then
+    echo "## ACTUAL RESOURCE USAGE"
+    echo "Node usage:"
+    echo "NAME  CPU(cores)  CPU%  MEMORY(bytes)  MEMORY%"
+    echo "$TOP_NODES"
+    echo ""
+    echo "Top 10 pods by CPU:"
+    head -10 "$TMPDIR/top_pods_cpu.txt"
+    echo ""
+    echo "Top 10 pods by memory:"
+    head -10 "$TMPDIR/top_pods_mem.txt"
+    echo ""
+else
+    echo "## ACTUAL RESOURCE USAGE"
+    echo "Metrics not available (metrics-server not installed or not ready)"
+    echo ""
+fi
+
+# 5. Resource Summary
 echo "## RESOURCE SUMMARY"
 echo "Pods by namespace:"
-kubectl get pods -A --no-headers | awk '{print $1}' | sort | uniq -c | sort -rn | head -15
+jq -r '.items[].metadata.namespace' "$PODS_JSON" | sort | uniq -c | sort -rn | head -15
 echo ""
 
-# 5. Pods Without Resource Configuration
+# 5. Workload Readiness
+echo "## WORKLOAD READINESS"
+echo "Active Deployments (replicas > 0):"
+jq -r '
+  ["NAMESPACE","NAME","READY","UP-TO-DATE","AVAILABLE"],
+  (.items[] | select((.spec.replicas // 0) > 0) | [
+    .metadata.namespace,
+    .metadata.name,
+    "\(.status.readyReplicas // 0)/\(.spec.replicas // 0)",
+    (.status.updatedReplicas // 0),
+    (.status.availableReplicas // 0)
+  ]) | @tsv' "$TMPDIR/deployments.json" 2>/dev/null | column -t
+SCALED_ZERO=$(jq '[.items[] | select((.spec.replicas // 0) == 0)] | length' "$TMPDIR/deployments.json" 2>/dev/null)
+echo "Scaled-to-zero deployments: $SCALED_ZERO"
+echo ""
+echo "Unhealthy Deployments (ready < desired):"
+UNHEALTHY_DEPLOY=$(jq -r '
+  [.items[] | select((.spec.replicas // 0) > 0) | select((.status.readyReplicas // 0) < (.spec.replicas // 0))] |
+  if length == 0 then "None" else .[] | "\(.metadata.namespace)\t\(.metadata.name)\t\(.status.readyReplicas // 0)/\(.spec.replicas // 0)" end' "$TMPDIR/deployments.json" 2>/dev/null)
+echo "$UNHEALTHY_DEPLOY"
+echo ""
+echo "StatefulSets:"
+jq -r '
+  ["NAMESPACE","NAME","READY"],
+  (.items[] | [
+    .metadata.namespace,
+    .metadata.name,
+    "\(.status.readyReplicas // 0)/\(.spec.replicas // 0)"
+  ]) | @tsv' "$TMPDIR/statefulsets.json" 2>/dev/null | column -t
+echo ""
+echo "DaemonSets:"
+jq -r '
+  ["NAMESPACE","NAME","DESIRED","READY","AVAILABLE","MISSCHEDULED"],
+  (.items[] | [
+    .metadata.namespace,
+    .metadata.name,
+    (.status.desiredNumberScheduled // 0),
+    (.status.numberReady // 0),
+    (.status.numberAvailable // 0),
+    (.status.numberMisscheduled // 0)
+  ]) | @tsv' "$TMPDIR/daemonsets.json" 2>/dev/null | column -t
+echo ""
+ROLLOUT_COUNT=$(jq '.items | length' "$TMPDIR/rollouts.json" 2>/dev/null)
+if [[ "$ROLLOUT_COUNT" -gt 0 ]] 2>/dev/null; then
+    echo "Argo Rollouts:"
+    ROLLOUT_ACTIVE=$(jq '[.items[] | select((.spec.replicas // 0) > 0)] | length' "$TMPDIR/rollouts.json" 2>/dev/null)
+    ROLLOUT_HEALTHY=$(jq '[.items[] | select((.spec.replicas // 0) > 0) | select(.status.phase == "Healthy")] | length' "$TMPDIR/rollouts.json" 2>/dev/null)
+    ROLLOUT_SCALED_ZERO=$(jq '[.items[] | select((.spec.replicas // 0) == 0)] | length' "$TMPDIR/rollouts.json" 2>/dev/null)
+    echo "- Total: $ROLLOUT_COUNT, Active: $ROLLOUT_ACTIVE, Healthy: $ROLLOUT_HEALTHY, Scaled-to-zero: $ROLLOUT_SCALED_ZERO"
+    echo ""
+    echo "Non-healthy Rollouts (Degraded, Progressing, Paused, etc.):"
+    NON_HEALTHY_ROLLOUTS=$(jq -r '
+      [.items[] | select((.spec.replicas // 0) > 0) | select(.status.phase != "Healthy")] |
+      if length == 0 then "None" else
+        (["NAMESPACE","NAME","STRATEGY","READY","STATUS"] | @tsv),
+        (.[] | [
+          .metadata.namespace,
+          .metadata.name,
+          (.spec.strategy | keys[0] // "unknown"),
+          "\(.status.readyReplicas // 0)/\(.spec.replicas // 0)",
+          (.status.phase // "unknown")
+        ] | @tsv)
+      end' "$TMPDIR/rollouts.json" 2>/dev/null)
+    echo "$NON_HEALTHY_ROLLOUTS" | column -t
+    echo ""
+fi
+echo "Istio sidecar injection:"
+ISTIO_COUNT=$(jq '[.items[] | select(.status.phase == "Running") | select(any(.spec.containers[]; .name == "istio-proxy"))] | length' "$PODS_JSON" 2>/dev/null)
+RUNNING_COUNT=$(jq '[.items[] | select(.status.phase == "Running")] | length' "$PODS_JSON" 2>/dev/null)
+echo "- Pods with istio-proxy: $ISTIO_COUNT/$RUNNING_COUNT running pods"
+echo ""
+
+# 6. Pods Without Resource Configuration
 echo "## PODS WITHOUT RESOURCE LIMITS"
-PODS_LIMITS_OUTPUT=$(kubectl get pods -A -o json 2>/dev/null | jq -r '
+PODS_LIMITS_OUTPUT=$(jq -r '
 [.items[] |
 select(.status.phase == "Running") |
 select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {})) |
-[.metadata.namespace, .metadata.name] | @tsv] | unique[] ' 2>/dev/null | head -30)
+[.metadata.namespace, .metadata.name] | @tsv] | unique[]' "$PODS_JSON" 2>/dev/null | head -30)
 if [[ -n "$PODS_LIMITS_OUTPUT" ]]; then
     echo "$PODS_LIMITS_OUTPUT"
     echo ""
@@ -121,11 +261,11 @@ fi
 echo ""
 
 echo "## PODS WITHOUT RESOURCE REQUESTS"
-PODS_REQUESTS_OUTPUT=$(kubectl get pods -A -o json 2>/dev/null | jq -r '
+PODS_REQUESTS_OUTPUT=$(jq -r '
 [.items[] |
 select(.status.phase == "Running") |
 select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {})) |
-[.metadata.namespace, .metadata.name] | @tsv] | unique[]' 2>/dev/null | head -30)
+[.metadata.namespace, .metadata.name] | @tsv] | unique[]' "$PODS_JSON" 2>/dev/null | head -30)
 if [[ -n "$PODS_REQUESTS_OUTPUT" ]]; then
     echo "$PODS_REQUESTS_OUTPUT"
     echo ""
@@ -137,7 +277,7 @@ echo ""
 
 # 6. High Memory Limit Pods (Top 10)
 echo "## TOP 10 MEMORY CONSUMERS (by limit)"
-kubectl get pods -A -o json | jq -r '
+jq -r '
 [.items[] |
 select(.status.phase == "Running") |
 {
@@ -147,73 +287,99 @@ select(.status.phase == "Running") |
     if endswith("Gi") then (rtrimstr("Gi") | tonumber * 1024)
     elif endswith("Mi") then (rtrimstr("Mi") | tonumber)
     else 0 end] | add)
-}] | sort_by(-.mem) | .[:10] | .[] | "\(.ns)\t\(.name)\t\(.mem)Mi"' 2>/dev/null
+}] | sort_by(-.mem) | .[:10] | .[] | "\(.ns)\t\(.name)\t\(.mem)Mi"' "$PODS_JSON" 2>/dev/null
 echo ""
 
 # 7. Pod Restarts (Top 10)
 echo "## TOP 10 POD RESTARTS"
-kubectl get pods -A -o json | jq -r '
+jq -r '
 [.items[] |
 select(.status.containerStatuses != null) |
 {
   ns: .metadata.namespace,
   name: .metadata.name,
   restarts: ([.status.containerStatuses[].restartCount] | add)
-}] | sort_by(-.restarts) | .[:10] | .[] | select(.restarts > 0) | "\(.ns)\t\(.name)\t\(.restarts)"' 2>/dev/null
+}] | sort_by(-.restarts) | .[:10] | .[] | select(.restarts > 0) | "\(.ns)\t\(.name)\t\(.restarts)"' "$PODS_JSON" 2>/dev/null
 echo ""
 
-# 8. Warning Events
-echo "## RECENT WARNING EVENTS"
-WARN_OUTPUT=$(kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' 2>/dev/null | tail -20)
+# 8. Warning Events (deduplicated)
+echo "## RECENT WARNING EVENTS (deduplicated by reason)"
+WARN_OUTPUT=$(jq -r '
+  [.items[] | {
+    reason: .reason,
+    object: "\(.involvedObject.kind)/\(.involvedObject.name)",
+    ns: (.involvedObject.namespace // "cluster"),
+    message: .message,
+    count: (.count // 1),
+    last: (.lastTimestamp // .metadata.creationTimestamp)
+  }] |
+  group_by(.reason) |
+  map({
+    reason: .[0].reason,
+    total_count: (map(.count) | add),
+    objects: (map(.object) | unique | join(", ")),
+    ns: (map(.ns) | unique | join(", ")),
+    last: (map(.last) | sort | last),
+    example_message: .[0].message
+  }) |
+  sort_by(-.total_count) |
+  .[] | "[\(.total_count)x] \(.reason) in \(.ns) (last: \(.last))\n  Objects: \(.objects)\n  Example: \(.example_message[:200])"
+' "$TMPDIR/events.json" 2>/dev/null)
 if [[ -n "$WARN_OUTPUT" ]]; then echo "$WARN_OUTPUT"; else echo "None"; fi
 echo ""
 
 # 9. Pending/Problem Pods
 echo "## PROBLEM PODS"
 echo "Pending:"
-PENDING_OUTPUT=$(kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null)
+PENDING_OUTPUT=$(cat "$TMPDIR/pending.txt")
 if [[ -n "$PENDING_OUTPUT" ]]; then echo "$PENDING_OUTPUT"; else echo "None"; fi
 echo ""
 echo "Failed:"
-FAILED_OUTPUT=$(kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null)
+FAILED_OUTPUT=$(cat "$TMPDIR/failed.txt")
 if [[ -n "$FAILED_OUTPUT" ]]; then echo "$FAILED_OUTPUT"; else echo "None"; fi
 echo ""
 
 # 10. Storage Classes
 echo "## STORAGE CLASSES"
-kubectl get storageclasses -o custom-columns='NAME:.metadata.name,PROVISIONER:.provisioner,DEFAULT:.metadata.annotations.storageclass\.kubernetes\.io/is-default-class' 2>/dev/null
+cat "$TMPDIR/storageclasses.txt"
 echo ""
 
 # 11. PodDisruptionBudgets
 echo "## POD DISRUPTION BUDGETS"
-kubectl get pdb -A --no-headers 2>/dev/null || echo "None configured"
+PDB_OUTPUT=$(cat "$TMPDIR/pdb.txt")
+if [[ -n "$PDB_OUTPUT" ]]; then echo "$PDB_OUTPUT"; else echo "None configured"; fi
 echo ""
 
 # 12. LimitRanges and ResourceQuotas
 echo "## LIMIT RANGES"
-LR_OUTPUT=$(kubectl get limitranges -A --no-headers 2>/dev/null)
+LR_OUTPUT=$(cat "$TMPDIR/limitranges.txt")
 if [[ -n "$LR_OUTPUT" ]]; then echo "$LR_OUTPUT"; else echo "None configured"; fi
 echo ""
 
 echo "## RESOURCE QUOTAS"
-RQ_OUTPUT=$(kubectl get resourcequotas -A --no-headers 2>/dev/null)
+RQ_OUTPUT=$(cat "$TMPDIR/quotas.txt")
 if [[ -n "$RQ_OUTPUT" ]]; then echo "$RQ_OUTPUT"; else echo "None configured"; fi
 echo ""
 
 # 13. Network Policies Summary
 echo "## NETWORK POLICIES"
-kubectl get networkpolicies -A --no-headers 2>/dev/null | wc -l | xargs -I {} echo "Count: {}"
-kubectl get networkpolicies -A -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name' --no-headers 2>/dev/null | head -10
+echo "Count: $(wc -l < "$TMPDIR/netpol.txt" | tr -d ' ')"
+head -10 "$TMPDIR/netpol_detail.txt"
 echo ""
 
 # 14. Node Taints
 echo "## NODE TAINTS"
-kubectl get nodes -o custom-columns='NODE:.metadata.name,TAINTS:.spec.taints[*].key' 2>/dev/null
+jq -r '
+  ["NODE","TAINTS"],
+  (.items[] | [
+    .metadata.name,
+    (if .spec.taints then [.spec.taints[].key] | join(",") else "<none>" end)
+  ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
 
 # 15. K3s Specific (if applicable)
 echo "## K3S CONFIG (if applicable)"
-kubectl get nodes -o jsonpath='{.items[0].metadata.annotations.k3s\.io/node-args}' 2>/dev/null | jq -r 'join(" ")' 2>/dev/null || echo "Not a K3s cluster or config not exposed"
+jq -r '.items[0].metadata.annotations["k3s.io/node-args"] // empty' "$NODES_JSON" 2>/dev/null | jq -r 'join(" ")' 2>/dev/null || echo "Not a K3s cluster or config not exposed"
 echo ""
 
 echo "=== END OF REPORT ==="
