@@ -4,7 +4,7 @@ metadata:
   name: assess
 spec:
   version: "v1.0.0"
-  homepage: "https://github.com/dejanu/kubectl-assess"
+  homepage: "https://github.com/dejanu/k8s_assess"
   shortDescription: "Kubernetes cluster assessment report for AI analysis."
   description: |
     Generates a comprehensive Kubernetes cluster assessment report, optimized for AI analysis. Useful for audits, troubleshooting, and best-practices review.
@@ -13,13 +13,13 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: "https://github.com/dejanu/kubectl-assess/releases/download/v1.0.0/kubectl-assess-darwin-arm64.tar.gz"
-      sha256: "b437ada02a0778f92d23a1850afc196a6ee858265a421b28a409a6331c9a82cc"
-      bin: "kubectl-assess"
+      uri: "https://github.com/dejanu/k8s_assess/releases/download/v1.0.0/k8s_assess-darwin-arm64.tar.gz"
+      sha256: "6f0c0672218fa685c9a7e38d4d4c801634458b776d429d64730ec30795463c8b"
+      bin: "k8s_assess"
     - selector:
         matchLabels:
           os: linux
           arch: arm64
-      uri: "https://github.com/dejanu/kubectl-assess/releases/download/v1.0.0/kubectl-assess-linux-arm64.tar.gz"
-      sha256: "b437ada02a0778f92d23a1850afc196a6ee858265a421b28a409a6331c9a82cc"
-      bin: "kubectl-assess"
+      uri: "https://github.com/dejanu/k8s_assess/releases/download/v1.0.0/k8s_assess-linux-arm64.tar.gz"
+      sha256: "6f0c0672218fa685c9a7e38d4d4c801634458b776d429d64730ec30795463c8b"
+      bin: "k8s_assess"
