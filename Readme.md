@@ -20,7 +20,7 @@ Kubernetes cluster assessment plugin optimized for AI analysis.
 
 ```bash
 kubectl krew index add alex-index https://github.com/dejanu/k8s_assess.git
-
+kubectl krew search alex-index
 kubectl krew install alex-index/assess
 ```
 
