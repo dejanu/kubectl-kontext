@@ -4,7 +4,7 @@ metadata:
   name: assess
 spec:
   version: "v1.0.0"
-  homepage: "https://github.com/your-org/kubectl-assess"
+  homepage: "https://github.com/dejanu/kubectl-assess"
   shortDescription: "Kubernetes cluster assessment report for AI analysis."
   description: |
     Generates a comprehensive Kubernetes cluster assessment report, optimized for AI analysis. Useful for audits, troubleshooting, and best-practices review.
@@ -13,13 +13,13 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: "https://github.com/your-org/kubectl-assess/releases/download/v1.0.0/kubectl-assess-darwin-amd64.tar.gz"
+      uri: "https://github.com/dejanu/kubectl-assess/releases/download/v1.0.0/kubectl-assess-darwin-arm64.tar.gz"
       sha256: "2a2e0b13c46c33c40a95589facc35c3ebc8ad680ac90038bc13eb94983a317d1"
       bin: "kubectl-assess"
     - selector:
         matchLabels:
           os: linux
           arch: arm64
-      uri: "https://github.com/your-org/kubectl-assess/releases/download/v1.0.0/kubectl-assess-linux-amd64.tar.gz"
+      uri: "https://github.com/dejanu/kubectl-assess/releases/download/v1.0.0/kubectl-assess-linux-arm64.tar.gz"
       sha256: "2a2e0b13c46c33c40a95589facc35c3ebc8ad680ac90038bc13eb94983a317d1"
       bin: "kubectl-assess"
