@@ -4,20 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Kubernetes cluster assessment toolkit that generates structured reports optimized for AI analysis. Reports follow a summary → metrics → details structure designed for piping into Claude CLI or uploading to claude.ai.
+Kubernetes cluster kontextment toolkit that generates structured reports optimized for AI analysis. Reports follow a summary → metrics → details structure designed for piping into Claude CLI or uploading to claude.ai.
 
 ## Key Files
 
-- **`kubectl-assess`** — kubectl plugin (install to PATH, invoke as `kubectl assess`). Has `--help` and checks for `jq` dependency.
+- **`kubectl-kontext`** — kubectl plugin (install to PATH, invoke as `kubectl kontext`). Has `--help` and checks for `jq` dependency.
 
 ## Running
 
 ```bash
-kubectl assess                                    # Report to stdout
-./kubectl-assess                                  # Run directly
-kubectl assess | claude -p 'Analyze this cluster' # Pipe to Claude CLI
-kubectl assess > report.txt                       # Save and upload to claude.ai
-kubectl assess | claude -p 'Analyze...' | glow    # Render markdown in terminal
+kubectl kontext                                    # Report to stdout
+./kubectl-kontext                                  # Run directly
+kubectl kontext | claude -p 'Analyze this cluster' # Pipe to Claude CLI
+kubectl kontext > report.txt                       # Save and upload to claude.ai
+kubectl kontext | claude -p 'Analyze...' | glow    # Render markdown in terminal
 ```
 
 ## Dependencies

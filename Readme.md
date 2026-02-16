@@ -1,4 +1,4 @@
-# kubectl-assess
+# kubectl-kontext
 
 Kubernetes cluster assessment plugin optimized for AI analysis.
  summary → metrics → details, which matches how AI models process information most effectively.
@@ -25,14 +25,14 @@ How it works (3 phases):
 ## Install
 
 ```bash
-# local cp kubectl-assess /usr/local/bin/
+# local cp kubectl-kontext /usr/local/bin/
 export PATH="$PATH:$(pwd)" 
 
-kubectl krew index add alex-index https://github.com/dejanu/k8s_assess.git
+kubectl krew index add alex-index https://github.com/dejanu/k8s_kontext.git
 
 kubectl krew search alex-index
 
-kubectl krew install alex-index/assess
+kubectl krew install alex-index/kontext
 ```
 
 ## Usage
@@ -40,17 +40,17 @@ kubectl krew install alex-index/assess
 * For unix composition with claude code in headless mode
 
 ```bash
-kubectl assess | pbcopy 
+kubectl kontext | pbcopy 
 
 # Quick assessment
-kubectl assess | claude --model sonnet -p 'List critical issues and recommendations'
+kubectl kontext | claude --model sonnet -p 'List critical issues and recommendations'
 
-kubectl assess | claude clear -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
+kubectl kontext | claude clear -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
 
 # K3s evaluation
-kubectl assess | claude --model sonnet -p 'Based on this report, is K3s suitable or should this be vanilla K8s? Consider: node count, workload complexity, HA requirements.'
+kubectl kontext | claude --model sonnet -p 'Based on this report, is K3s suitable or should this be vanilla K8s? Consider: node count, workload complexity, HA requirements.'
 
 # Quick health check (fast/cheap)
-kubectl assess | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
+kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
 
 ```

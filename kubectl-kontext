@@ -1,30 +1,30 @@
 #!/bin/bash
 
-# kubectl-assess: Kubernetes Cluster Assessment Plugin
+# kubectl-kontext: Kubernetes Cluster kontextment Plugin
 # Generates a report optimized for AI analysis
 #
 # Install:
-#   cp kubectl-assess /usr/local/bin/ && chmod +x /usr/local/bin/kubectl-assess
+#   cp kubectl-kontext /usr/local/bin/ && chmod +x /usr/local/bin/kubectl-kontext
 #
 # Usage:
-#   kubectl assess                              # Output to stdout
-#   kubectl assess | claude -p 'Analyze...'     # Pipe to AI
-#   kubectl assess --help                       # Show help
+#   kubectl kontext                              # Output to stdout
+#   kubectl kontext | claude -p 'Analyze...'     # Pipe to AI
+#   kubectl kontext --help                       # Show help
 
 set -euo pipefail
 
 # Help
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<EOF
-kubectl assess - Cluster assessment report for AI analysis
+kubectl kontext - Cluster kontextment report for AI analysis
 
 Usage:
-  kubectl assess                                      Generate report to stdout
-  kubectl assess | claude -p 'Analyze this cluster'   Pipe to AI
+  kubectl kontext                                      Generate report to stdout
+  kubectl kontext | claude -p 'Analyze this cluster'   Pipe to AI
 
 Examples:
-  kubectl assess | claude -p 'List critical issues and recommendations'
-  kubectl assess | claude -p 'Analyze' | tee analysis.md
+  kubectl kontext | claude -p 'List critical issues and recommendations'
+  kubectl kontext | claude -p 'Analyze' | tee analysis.md
 
 Requires: jq
 EOF
@@ -75,7 +75,7 @@ wait
 
 # --- Phase 3: Assemble report in order ---
 {
-echo "=== KUBERNETES CLUSTER ASSESSMENT REPORT ==="
+echo "=== KUBERNETES CLUSTER kontextMENT REPORT ==="
 CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
 CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
 echo "Cluster: $CLUSTER_NAME"

@@ -1,4 +1,4 @@
-PLUGIN_NAME=kubectl-assess
+PLUGIN_NAME=kubectl-kontext
 VERSION?=v1.0.0
 PLATFORMS=darwin-arm64 linux-arm64
 
