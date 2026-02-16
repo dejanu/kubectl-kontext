@@ -5,9 +5,9 @@ metadata:
 spec: 
   version: "v1.0.0"
   homepage: "https://github.com/dejanu/kubectl-kontext"
-  shortDescription: "Kubernetes cluster assessment report for AI analysis."
+  shortDescription: "Kubernetes cluster context report for AI analysis."
   description: |
-    Generates a comprehensive Kubernetes cluster assessment report, optimized for AI analysis. Useful for audits, troubleshooting, and best-practices review.
+    Generates a comprehensive Kubernetes cluster assessment context, optimized for AI analysis. Useful for audits, troubleshooting, and best-practices review.
   platforms:
     - selector:
         matchLabels:

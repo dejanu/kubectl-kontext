@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# kubectl-kontext: Kubernetes Cluster kontextment Plugin
-# Generates a report optimized for AI analysis
+# kubectl-kontext: Kubernetes Cluster kontext Plugin
+# Generates a context optimized for AI analysis
 #
 # Install:
 #   cp kubectl-kontext /usr/local/bin/ && chmod +x /usr/local/bin/kubectl-kontext
@@ -16,7 +16,7 @@ set -euo pipefail
 # Help
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<EOF
-kubectl kontext - Cluster kontextment report for AI analysis
+kubectl kontext - Cluster kontext report for AI analysis
 
 Usage:
   kubectl kontext                                      Generate report to stdout

@@ -28,11 +28,11 @@ How it works (3 phases):
 # local cp kubectl-kontext /usr/local/bin/
 export PATH="$PATH:$(pwd)" 
 
-kubectl krew index add alex-index https://github.com/dejanu/k8s_kontext.git
+kubectl krew index add my-index https://github.com/dejanu/k8s_kontext.git
 
-kubectl krew search alex-index
+kubectl krew search my-index
 
-kubectl krew install alex-index/kontext
+kubectl krew install my-index/kontext
 ```
 
 ## Usage
