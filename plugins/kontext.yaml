@@ -1,7 +1,7 @@
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin
 metadata:
-  name: assess
+  name: kontext
 spec: 
   version: "v1.0.0"
   homepage: "https://github.com/dejanu/kubectl-kontext"
