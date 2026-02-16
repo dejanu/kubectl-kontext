@@ -48,7 +48,7 @@ kubectl kontext | claude --model sonnet -p 'List critical issues and recommendat
 kubectl kontext | claude -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
 
 # K3s evaluation
-kubectl kontext | claude --model sonnet -p 'Based on this report, is K3s suitable or should this be vanilla K8s? Consider: node count, workload complexity, HA requirements.'
+kubectl kontext | claude --model sonnet -p 'Based on this report, is K8S suitable alternative for this K3S cluster? Consider: node count, workload complexity, HA requirements.'
 
 # Quick health check (fast/cheap)
 kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
