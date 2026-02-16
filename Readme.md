@@ -1,7 +1,7 @@
 # kubectl-kontext
 
-Kubernetes cluster assessment plugin optimized for AI analysis.
- summary → metrics → details, which matches how AI models process information most effectively.
+Kubernetes cluster assessment plugin optimized for AI analysis. 
+ Summary-first design, which matches how AI models process information most effectively.
 
 How it works (3 phases):                                                                                                                                                                                                              
   1. Fetch heavy JSON data in parallel (pods, nodes, events) from the cluster

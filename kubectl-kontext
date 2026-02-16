@@ -75,7 +75,7 @@ wait
 
 # --- Phase 3: Assemble report in order ---
 {
-echo "=== KUBERNETES CLUSTER kontextMENT REPORT ==="
+echo "=== KUBERNETES CLUSTER asessment REPORT ==="
 CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
 CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
 echo "Cluster: $CLUSTER_NAME"
@@ -170,7 +170,7 @@ echo "Pods by namespace:"
 jq -r '.items[].metadata.namespace' "$PODS_JSON" | sort | uniq -c | sort -rn | head -15
 echo ""
 
-# 5. Workload Readiness
+# 6. Workload Readiness
 echo "## WORKLOAD READINESS"
 echo "Active Deployments (replicas > 0):"
 jq -r '
@@ -242,7 +242,7 @@ RUNNING_COUNT=$(jq '[.items[] | select(.status.phase == "Running")] | length' "$
 echo "- Pods with istio-proxy: $ISTIO_COUNT/$RUNNING_COUNT running pods"
 echo ""
 
-# 6. Pods Without Resource Configuration
+# 7. Pods Without Resource Configuration
 echo "## PODS WITHOUT RESOURCE LIMITS"
 PODS_LIMITS_OUTPUT=$(jq -r '
 [.items[] |
@@ -273,7 +273,7 @@ else
 fi
 echo ""
 
-# 6. High Memory Limit Pods (Top 10)
+# 8. High Memory Limit Pods (Top 10)
 echo "## TOP 10 MEMORY CONSUMERS (by limit)"
 jq -r '
 [.items[] |
@@ -289,7 +289,7 @@ select(.status.phase == "Running") |
 }] | sort_by(-.mem) | .[:10] | .[] | "\(.ns)\t\(.name)\t\(.mem)Mi"' "$PODS_JSON" 2>/dev/null
 echo ""
 
-# 7. Pod Restarts (Top 10)
+# 9. Pod Restarts (Top 10)
 echo "## TOP 10 POD RESTARTS"
 jq -r '
 [.items[] |
@@ -301,7 +301,7 @@ select(.status.containerStatuses != null) |
 }] | sort_by(-.restarts) | .[:10] | .[] | select(.restarts > 0) | "\(.ns)\t\(.name)\t\(.restarts)"' "$PODS_JSON" 2>/dev/null
 echo ""
 
-# 8. Warning Events (deduplicated)
+# 10. Warning Events (deduplicated)
 echo "## RECENT WARNING EVENTS (deduplicated by reason)"
 WARN_OUTPUT=$(jq -r '
   [.items[] | {
@@ -327,7 +327,7 @@ WARN_OUTPUT=$(jq -r '
 if [[ -n "$WARN_OUTPUT" ]]; then echo "$WARN_OUTPUT"; else echo "None"; fi
 echo ""
 
-# 9. Pending/Problem Pods
+# 11. Pending/Problem Pods
 echo "## PROBLEM PODS"
 echo "Pending:"
 PENDING_OUTPUT=$(cat "$TMPDIR/pending.txt")
@@ -338,18 +338,18 @@ FAILED_OUTPUT=$(cat "$TMPDIR/failed.txt")
 if [[ -n "$FAILED_OUTPUT" ]]; then echo "$FAILED_OUTPUT"; else echo "None"; fi
 echo ""
 
-# 10. Storage Classes
+# 12. Storage Classes
 echo "## STORAGE CLASSES"
 cat "$TMPDIR/storageclasses.txt"
 echo ""
 
-# 11. PodDisruptionBudgets
+# 13. PodDisruptionBudgets
 echo "## POD DISRUPTION BUDGETS"
 PDB_OUTPUT=$(cat "$TMPDIR/pdb.txt")
 if [[ -n "$PDB_OUTPUT" ]]; then echo "$PDB_OUTPUT"; else echo "None configured"; fi
 echo ""
 
-# 12. LimitRanges and ResourceQuotas
+# 14. LimitRanges and ResourceQuotas
 echo "## LIMIT RANGES"
 LR_OUTPUT=$(cat "$TMPDIR/limitranges.txt")
 if [[ -n "$LR_OUTPUT" ]]; then echo "$LR_OUTPUT"; else echo "None configured"; fi
@@ -360,7 +360,7 @@ RQ_OUTPUT=$(cat "$TMPDIR/quotas.txt")
 if [[ -n "$RQ_OUTPUT" ]]; then echo "$RQ_OUTPUT"; else echo "None configured"; fi
 echo ""
 
-# 13. Network Policies Summary
+# 15. Network Policies Summary
 echo "## NETWORK POLICIES"
 NETPOL_COUNT=$(jq '.items // [] | length' "$TMPDIR/netpol.json" 2>/dev/null)
 echo "Count: ${NETPOL_COUNT:-0}"
@@ -369,7 +369,7 @@ jq -r '
 ' "$TMPDIR/netpol.json" 2>/dev/null | column -t
 echo ""
 
-# 14. Node Taints
+# 16. Node Taints
 echo "## NODE TAINTS"
 jq -r '
   ["NODE","TAINTS"],
@@ -379,7 +379,7 @@ jq -r '
   ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
 
-# 15. K3s Specific (if applicable)
+# 17. K3s Specific (if applicable)
 echo "## K3S CONFIG (if applicable)"
 jq -r '.items[0].metadata.annotations["k3s.io/node-args"] // empty' "$NODES_JSON" 2>/dev/null | jq -r 'join(" ")' 2>/dev/null || echo "Not a K3s cluster or config not exposed"
 echo ""
