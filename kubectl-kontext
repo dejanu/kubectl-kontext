@@ -123,13 +123,74 @@ jq -r '
   ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
 
-# 3. Node Resource Allocation
+# 3. Node Resource Allocation (computed from cached pods.json + nodes.json, no extra API calls)
 echo "## NODE RESOURCE ALLOCATION"
-for node in $(jq -r '.items[].metadata.name' "$NODES_JSON"); do
-    echo "--- $node ---"
-    kubectl describe node "$node" | sed -n '/Allocated resources:/,/Events:/p' | head -15
-    echo ""
-done
+jq -r --slurpfile pods "$PODS_JSON" '
+  def parse_cpu:
+    if . == null or . == "" then 0
+    elif test("^[0-9]+m$") then (rtrimstr("m") | tonumber)
+    elif test("^[0-9]+\\.?[0-9]*$") then (tonumber * 1000)
+    else 0 end;
+  def parse_mem:
+    if . == null or . == "" then 0
+    elif test("Ki$") then (rtrimstr("Ki") | tonumber)
+    elif test("Mi$") then (rtrimstr("Mi") | tonumber * 1024)
+    elif test("Gi$") then (rtrimstr("Gi") | tonumber * 1024 * 1024)
+    elif test("^[0-9]+$") then (tonumber / 1024)
+    else 0 end;
+  def pct(used; total): if total == 0 then 0 else ((used / total * 100) | round) end;
+  def fmt_cpu(m): if m >= 1000 then "\(m / 1000 | . * 10 | round / 10)" else "\(m | round)m" end;
+  def fmt_mem(ki): if ki >= 1048576 then "\(ki / 1048576 | . * 10 | round / 10)Gi"
+    elif ki >= 1024 then "\(ki / 1024 | round)Mi"
+    else "\(ki | round)Ki" end;
+
+  .items[] |
+  .metadata.name as $node |
+  (.status.allocatable.cpu | tostring | parse_cpu) as $alloc_cpu |
+  (.status.allocatable.memory | tostring | parse_mem) as $alloc_mem |
+
+  ($pods[0].items | map(
+    select(.spec.nodeName == $node and .status.phase != "Failed" and .status.phase != "Succeeded")
+  )) as $node_pods |
+
+  # Kubernetes resource accounting per pod (K8s 1.28+):
+  # - Native sidecars (initContainers with restartPolicy=Always): added to regular container sum
+  # - Regular init containers: max of each, compared against the above sum
+  # - effective = max(max(regular inits), sum(containers) + sum(sidecar inits))
+  def pod_req_cpu:
+    ([.spec.initContainers[]? | select(.restartPolicy != "Always") | .resources.requests.cpu // "" | tostring | parse_cpu] | max // 0) as $init |
+    ([.spec.initContainers[]? | select(.restartPolicy == "Always") | .resources.requests.cpu // "" | tostring | parse_cpu] | add // 0) as $sidecar |
+    ([.spec.containers[]?.resources.requests.cpu // "" | tostring | parse_cpu] | add // 0) as $regular |
+    (($regular + $sidecar) as $running | if $init > $running then $init else $running end);
+  def pod_req_mem:
+    ([.spec.initContainers[]? | select(.restartPolicy != "Always") | .resources.requests.memory // "" | tostring | parse_mem] | max // 0) as $init |
+    ([.spec.initContainers[]? | select(.restartPolicy == "Always") | .resources.requests.memory // "" | tostring | parse_mem] | add // 0) as $sidecar |
+    ([.spec.containers[]?.resources.requests.memory // "" | tostring | parse_mem] | add // 0) as $regular |
+    (($regular + $sidecar) as $running | if $init > $running then $init else $running end);
+  def pod_lim_cpu:
+    ([.spec.initContainers[]? | select(.restartPolicy != "Always") | .resources.limits.cpu // "" | tostring | parse_cpu] | max // 0) as $init |
+    ([.spec.initContainers[]? | select(.restartPolicy == "Always") | .resources.limits.cpu // "" | tostring | parse_cpu] | add // 0) as $sidecar |
+    ([.spec.containers[]?.resources.limits.cpu // "" | tostring | parse_cpu] | add // 0) as $regular |
+    (($regular + $sidecar) as $running | if $init > $running then $init else $running end);
+  def pod_lim_mem:
+    ([.spec.initContainers[]? | select(.restartPolicy != "Always") | .resources.limits.memory // "" | tostring | parse_mem] | max // 0) as $init |
+    ([.spec.initContainers[]? | select(.restartPolicy == "Always") | .resources.limits.memory // "" | tostring | parse_mem] | add // 0) as $sidecar |
+    ([.spec.containers[]?.resources.limits.memory // "" | tostring | parse_mem] | add // 0) as $regular |
+    (($regular + $sidecar) as $running | if $init > $running then $init else $running end);
+
+  ($node_pods | map(pod_req_cpu) | add // 0) as $req_cpu |
+  ($node_pods | map(pod_req_mem) | add // 0) as $req_mem |
+  ($node_pods | map(pod_lim_cpu) | add // 0) as $lim_cpu |
+  ($node_pods | map(pod_lim_mem) | add // 0) as $lim_mem |
+
+  "--- \($node) ---",
+  "  Allocated resources:",
+  "    Resource  Requests\t\tLimits",
+  "    cpu       \(fmt_cpu($req_cpu)) (\(pct($req_cpu; $alloc_cpu))%)\t\(fmt_cpu($lim_cpu)) (\(pct($lim_cpu; $alloc_cpu))%)",
+  "    memory    \(fmt_mem($req_mem)) (\(pct($req_mem; $alloc_mem))%)\t\(fmt_mem($lim_mem)) (\(pct($lim_mem; $alloc_mem))%)",
+  "    pods      \($node_pods | length)/\(.status.allocatable.pods)",
+  ""
+' "$NODES_JSON" 2>/dev/null || echo "Unable to compute node allocation"
 
 # 3b. Cluster-wide resource totals
 echo "## CLUSTER-WIDE RESOURCE TOTALS"
