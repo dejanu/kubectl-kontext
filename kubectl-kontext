@@ -20,11 +20,11 @@ kubectl kontext - Cluster kontext report for AI analysis
 
 Usage:
   kubectl kontext                                      Generate report to stdout
-  kubectl kontext | claude --model sonnet -p 'Analyze this cluster'   Pipe to AI
+  kubectl kontext | claude --model haiku -p -p 'Analyze this cluster'   Pipe to AI
 
 Examples:
   kubectl kontext | claude -p 'List critical issues and recommendations'
-  kubectl kontext | claude -p 'Analyze' | tee analysis.md
+  kubectl kontext | claude -p 'Analyze cluster' | tee analysis.md
 
 Requires: jq
 EOF

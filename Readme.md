@@ -25,7 +25,7 @@ How it works (3 phases):
 ## Install
 
 ```bash
-# local cp kubectl-kontext /usr/local/bin/
+# cp kubectl-kontext /usr/local/bin/
 export PATH="$PATH:$(pwd)" 
 
 kubectl krew index add my-index https://github.com/dejanu/kubectl-kontext.git
@@ -45,12 +45,11 @@ kubectl kontext | pbcopy
 # Quick assessment
 kubectl kontext | claude --model sonnet -p 'List critical issues and recommendations'
 
-kubectl kontext | claude clear -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
+kubectl kontext | claude -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
 
 # K3s evaluation
 kubectl kontext | claude --model sonnet -p 'Based on this report, is K3s suitable or should this be vanilla K8s? Consider: node count, workload complexity, HA requirements.'
 
 # Quick health check (fast/cheap)
 kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
-
 ```
