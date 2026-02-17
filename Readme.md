@@ -6,7 +6,7 @@ Kubernetes cluster assessment plugin optimized for AI analysis.
 How it works (3 phases):                                                                                                                                                                                                              
   1. Fetch heavy JSON data in parallel (pods, nodes, events) from the cluster
   2. Run ~15 independent lightweight kubectl calls concurrently
-  3. Assemble the report sequentially from cached data using jq
+  3. Assemble the summary sequentially from cached data using jq
 
 
 | Section | Purpose |
@@ -25,9 +25,10 @@ How it works (3 phases):
 ## Install
 
 ```bash
-# local
+# Place kubectl-kontext in your path
 export PATH="$PATH:$(pwd)" # or cp kubectl-kontext /usr/local/bin/
 
+# Install kubectl-kontext from index
 kubectl krew index add my-index https://github.com/dejanu/kubectl-kontext.git
 
 kubectl krew search my-index
@@ -40,6 +41,7 @@ kubectl krew install my-index/kontext
 * For unix composition with claude code in headless mode
 
 ```bash
+# copy to Clipboard
 kubectl kontext | pbcopy 
 
 # Quick assessment
