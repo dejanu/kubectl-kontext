@@ -57,7 +57,7 @@ kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster health
 
 ```
 
-* Ollama locally (with desire [model](https://ollama.com/library?sort=popular))
+* Ollama locally (with desired [model](https://ollama.com/library?sort=popular))
 
 ```bash
 # start ollama locally as docker container with phi3
