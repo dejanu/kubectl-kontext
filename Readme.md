@@ -36,7 +36,7 @@ kubectl krew search my-index
 kubectl krew install my-index/kontext
 ```
 
-## Usage: levreaging unix composition
+## Usage: leveraging unix composition
 
 * Claude code in headless mode
 
