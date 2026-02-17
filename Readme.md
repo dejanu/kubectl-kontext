@@ -1,7 +1,7 @@
 # kubectl-kontext
 
 Kubernetes cluster assessment plugin optimized for AI analysis. 
- Summary-first design, which matches how AI models process information most effectively.
+ **Summary-first** design, which matches how AI models process information most effectively.
 
 How it works (3 phases):                                                                                                                                                                                                              
   1. Fetch heavy JSON data in parallel (pods, nodes, events) from the cluster
@@ -25,8 +25,8 @@ How it works (3 phases):
 ## Install
 
 ```bash
-# cp kubectl-kontext /usr/local/bin/
-export PATH="$PATH:$(pwd)" 
+# local
+export PATH="$PATH:$(pwd)" # or cp kubectl-kontext /usr/local/bin/
 
 kubectl krew index add my-index https://github.com/dejanu/kubectl-kontext.git
 

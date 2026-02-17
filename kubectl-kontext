@@ -16,7 +16,7 @@ set -euo pipefail
 # Help
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<EOF
-kubectl kontext - Cluster kontext report for AI analysis
+kubectl kontext - Cluster kontext for AI analysis
 
 Usage:
   kubectl kontext                                      Generate report to stdout
