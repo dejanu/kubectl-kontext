@@ -36,12 +36,12 @@ kubectl krew search my-index
 kubectl krew install my-index/kontext
 ```
 
-## Usage
+## Usage: levreaging unix composition
 
-* For unix composition with claude code in headless mode
+* Claude code in headless mode
 
 ```bash
-# copy to Clipboard
+# copy to Clipboard 
 kubectl kontext | pbcopy 
 
 # Quick assessment
@@ -54,4 +54,15 @@ kubectl kontext | claude --model sonnet -p 'Based on this report, is K8S suitabl
 
 # Quick health check (fast/cheap)
 kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
+
+```
+
+* Ollama locally (with desire [model](https://ollama.com/library?sort=popular))
+
+```bash
+# start ollama locally as docker container with phi3
+docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+docker exec ollama ollama run phi3
+
+kubectl kontext | docker exec -i ollama ollama run phi3 "Analyze this Kubernetes cluster report"
 ```
