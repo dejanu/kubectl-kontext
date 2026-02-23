@@ -14,7 +14,7 @@ spec:
           os: darwin
           arch: arm64
       uri: "https://github.com/dejanu/kubectl-kontext/releases/download/v1.0.0/kubectl-kontext-darwin-arm64.tar.gz"
-      sha256: "676a98af486db247e48fe5a4c2e174d04a251bb50af9862bae99cb438196a73"
+      sha256: "f676a98af486db247e48fe5a4c2e174d04a251bb50af9862bae99cb438196a73"
       bin: "kubectl-kontext"
 
     - selector:
