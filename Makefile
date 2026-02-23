@@ -1,7 +1,7 @@
 PLUGIN_NAME=kubectl-kontext
 PLATFORMS=darwin-arm64 linux-arm64
 
-.PHONY: all archives sha release clean
+.PHONY: all archives sha release clean remove-index
 
 all: archives sha
 
@@ -17,6 +17,10 @@ sha:
 	done
 
 release: archives sha
+
+remove-index:
+	kubectl krew uninstall kontext
+	kubectl krew index remove my-index
 
 clean:
 	rm -f $(PLUGIN_NAME)-*.tar.gz
