@@ -1,0 +1,50 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up tar
+        run: sudo apt-get update && sudo apt-get install -y tar
+
+      - name: Build tarball
+        run: make
+
+      - name: Get tarball name
+        id: tarball
+        run: |
+          TAR_FILE=$(ls *.tar.gz | head -n1)
+          echo "tarball=$TAR_FILE" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.tarball.outputs.tarball }}
+          asset_name: ${{ steps.tarball.outputs.tarball }}
+          asset_content_type: application/gzip
