@@ -4,8 +4,6 @@ Kubernetes cluster assessment plugin optimized for AI analysis.
 
 **Summary-first** `summary → metrics → details`  design, which matches how AI models process information most effectively. 
  
-Claude gets context before raw data, so relatively concise prompts work well — you don't need to re-explain the data shape.
-
 How it works (3 phases):                                                                                                                                                                                                              
   1. Fetch heavy JSON data in parallel (pods, nodes, events) from the cluster
   2. Run ~15 independent lightweight kubectl calls concurrently
@@ -39,7 +37,7 @@ kubectl krew search my-index
 kubectl krew install my-index/kontext
 ```
 
-## Usage: leveraging unix composition
+## Usage: leveraging Unix composition
 
 * Claude code in headless mode
 
@@ -55,7 +53,7 @@ kubectl kontext | claude -p 'Analyze this cluster. Prioritize issues by severity
 kubectl kontext | claude -p 'Is this cluster over-provisioned? Identify idle or wasted resources and suggest rightsizing.'
 
 # K3s evaluation
-kubectl kontext | claude --model sonnet -p 'Based on this report, is K8S suitable alternative for this K3S cluster? Consider: node count, workload complexity, HA requirements.'
+kubectl kontext | claude --model sonnet -p 'Based on this report, is K8S a suitable alternative for this K3S cluster? Consider: node count, workload complexity, HA requirements.'
 
 # Quick health check (fast/cheap)
 kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster healthy? Top 3 concerns if any.'
@@ -71,3 +69,12 @@ docker exec ollama ollama run phi3
 
 kubectl kontext | docker exec -i ollama ollama run phi3 "Analyze this Kubernetes cluster report"
 ```
+
+## Demo
+
+Claude gets context before raw data, so relatively concise prompts work well — you don't need to re-explain the data shape.
+
+
+https://github.com/user-attachments/assets/13ce0c64-e428-42b1-a57f-28a233d771a9
+
+
