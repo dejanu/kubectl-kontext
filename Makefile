@@ -1,8 +1,7 @@
 PLUGIN_NAME=kubectl-kontext
-VERSION?=v1.0.0
 PLATFORMS=darwin-arm64 linux-arm64
 
-.PHONY: all archives sha clean
+.PHONY: all archives sha release clean
 
 all: archives sha
 
@@ -16,6 +15,8 @@ sha:
 	  echo "$$platform:"; \
 	  shasum -a 256 $(PLUGIN_NAME)-$$platform.tar.gz | awk '{print $$1}'; \
 	done
+
+release: archives sha
 
 clean:
 	rm -f $(PLUGIN_NAME)-*.tar.gz

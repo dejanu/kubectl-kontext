@@ -1,7 +1,10 @@
 # kubectl-kontext
 
-Kubernetes cluster assessment plugin optimized for AI analysis. 
- **Summary-first** design, which matches how AI models process information most effectively.
+Kubernetes cluster assessment plugin optimized for AI analysis.
+
+**Summary-first** `summary → metrics → details`  design, which matches how AI models process information most effectively. 
+ 
+Claude gets context before raw data, so relatively concise prompts work well — you don't need to re-explain the data shape.
 
 How it works (3 phases):                                                                                                                                                                                                              
   1. Fetch heavy JSON data in parallel (pods, nodes, events) from the cluster
@@ -49,6 +52,8 @@ kubectl kontext | claude --model sonnet -p 'List critical issues and recommendat
 
 kubectl kontext | claude -p 'Analyze this cluster. Prioritize issues by severity (critical/high/medium/low). For each issue provide: problem, impact, fix.' | tee analysis.md
 
+kubectl kontext | claude -p 'Is this cluster over-provisioned? Identify idle or wasted resources and suggest rightsizing.'
+
 # K3s evaluation
 kubectl kontext | claude --model sonnet -p 'Based on this report, is K8S suitable alternative for this K3S cluster? Consider: node count, workload complexity, HA requirements.'
 
@@ -57,7 +62,7 @@ kubectl kontext | claude --model haiku -p 'One paragraph: Is this cluster health
 
 ```
 
-* Ollama locally (with desired [model](https://ollama.com/library?sort=popular))
+* Ollama locally (with desire [model](https://ollama.com/library?sort=popular))
 
 ```bash
 # start ollama locally as docker container with phi3
