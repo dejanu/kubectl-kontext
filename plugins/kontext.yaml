@@ -3,7 +3,7 @@ kind: Plugin
 metadata:
   name: kontext
 spec: 
-  version: "v1.0.2"
+  version: "v1.0.3"
   homepage: "https://github.com/dejanu/kubectl-kontext"
   shortDescription: "Kubernetes cluster context for AI analysis."
   description: |
@@ -13,13 +13,13 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: "https://github.com/dejanu/kubectl-kontext/releases/download/v1.0.0/kubectl-kontext-darwin-arm64.tar.gz"
+      uri: "https://github.com/dejanu/kubectl-kontext/releases/download/v1.0.3/kubectl-kontext-darwin-arm64.tar.gz"
       sha256: "aa280467f3df6bf0c2226ba2e76c5a9a235e83a7b4bbd29d9cfb5a20a89489f2"
       bin: "kubectl-kontext"
     - selector:
         matchLabels:
           os: linux
           arch: arm64
-      uri: "https://github.com/dejanu/kubectl-kontext/releases/download/v1.0.0/kubectl-kontext-linux-arm64.tar.gz"
+      uri: "https://github.com/dejanu/kubectl-kontext/releases/download/v1.0.3/kubectl-kontext-linux-arm64.tar.gz"
       sha256: "aa280467f3df6bf0c2226ba2e76c5a9a235e83a7b4bbd29d9cfb5a20a89489f2"
       bin: "kubectl-kontext"
