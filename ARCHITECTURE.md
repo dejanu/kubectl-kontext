@@ -150,7 +150,7 @@ No compiled code. No runtime packages or lockfiles.
 ## Risk-Sensitive Areas
 
 - **Untracked report files** (`report.md`, `computev2-ovh-*.md`) contain real cluster data and are not gitignored; accidental commit would expose cluster topology.
-- **Krew manifest sha256** — `plugins/kontext.yaml` lists the same sha256 for both `darwin-arm64` and `linux-arm64` platforms; likely a copy-paste error.
+- **Krew manifest sha256** — `plugins/kontext.yaml` lists the same sha256 for both `darwin-arm64` and `linux-arm64` because the `Makefile` currently packages the same `kubectl-kontext` Bash script into both tarballs; if platform-specific artifacts are introduced later, the manifest and checksums must be updated accordingly.
 - **Disabled CI** — `release-on-tag.yml.disabled` is inert; releases require manual `make release` execution.
 - **Platform coverage** — Krew manifest covers only `arm64`; `amd64` / `x86_64` platforms are not listed.
 - **No input validation** — script accepts no user-supplied input beyond `--help`; all data comes from `kubectl` API responses (read-only operations).
