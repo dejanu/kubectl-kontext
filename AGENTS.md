@@ -16,7 +16,7 @@ ARCHITECTURE.md          System design reference
 Readme.md                Install instructions and usage examples
 ```
 
-No src/ directory, no packages, no generated files.
+No src/ directory, no packages, and no generated source files; release artifacts (tarballs, checksums) live at the repository root.
 
 ---
 
