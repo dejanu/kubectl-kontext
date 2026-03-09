@@ -71,7 +71,7 @@ kubectl top pods -A --no-headers --sort-by=cpu 2>/dev/null > "$TMPDIR/top_pods_c
 kubectl top pods -A --no-headers --sort-by=memory 2>/dev/null > "$TMPDIR/top_pods_mem.txt" &
 kubectl get pods -A --field-selector=status.phase=Pending --no-headers 2>/dev/null > "$TMPDIR/pending.txt" &
 kubectl get pods -A --field-selector=status.phase=Failed --no-headers 2>/dev/null > "$TMPDIR/failed.txt" &
-kubectl get hpa -A -o json 2>/dev/null > "$TMPDIR/hpa.json" &
+kubectl get hpa -A -o json 2>/dev/null > "$TMPDIR/hpa.json" || echo '{"items":[]}' > "$TMPDIR/hpa.json" &
 wait
 
 # --- Phase 3: Assemble report in order ---
