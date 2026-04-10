@@ -20,7 +20,7 @@ kubectl kontext - Cluster kontext for AI analysis
 
 Usage:
   kubectl kontext                                      Generate report to stdout
-  kubectl kontext | claude --model haiku -p -p 'Analyze this cluster'   Pipe to AI
+  kubectl kontext | claude --model haiku -p 'Analyze this cluster'   Pipe to AI
 
 Examples:
   kubectl kontext | claude -p 'List critical issues and recommendations'
@@ -76,7 +76,7 @@ wait
 
 # --- Phase 3: Assemble report in order ---
 {
-echo "=== KUBERNETES CLUSTER asessment REPORT ==="
+echo "=== KUBERNETES CLUSTER ASSESSMENT REPORT ==="
 CLUSTER_NAME=$(kubectl config current-context 2>/dev/null || echo 'unknown')
 CLUSTER_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo 'unknown')
 echo "Cluster: $CLUSTER_NAME"

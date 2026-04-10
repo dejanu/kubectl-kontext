@@ -59,6 +59,9 @@ kubectl kontext | claude -p 'Analyze this cluster. Prioritize issues by severity
 
 kubectl kontext | claude -p 'Is this cluster over-provisioned? Identify idle or wasted resources and suggest rightsizing.'
 
+# claude CLI has a 3 sec stdin timeout
+kubectl kontext > report.md && claude --model sonnet -p 'List critical issues and recommendations' < report.md
+
 # Capacity planning — save report first so Claude and the file use the same snapshot
 kubectl kontext > report.md && cat report.md | claude --model sonnet -p '
 ## Capacity Planning Analysis
@@ -117,4 +120,3 @@ Claude gets context before raw data, so relatively concise prompts work well —
 
 
 https://github.com/user-attachments/assets/13ce0c64-e428-42b1-a57f-28a233d771a9
-
