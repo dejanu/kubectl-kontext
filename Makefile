@@ -1,7 +1,7 @@
 PLUGIN_NAME=kubectl-kontext
 PLATFORMS=darwin-arm64 linux-arm64
 
-.PHONY: all archives sha release clean remove-index
+.PHONY: all archives sha release clean remove-index install-mcp
 
 all: archives sha
 
@@ -17,6 +17,15 @@ sha:
 	done
 
 release: archives sha
+
+install-mcp:
+	@mkdir -p $(HOME)/.local/bin/kubectl-kontext
+	@cp kubectl-kontext $(HOME)/.local/bin/kubectl-kontext/kubectl-kontext
+	@cp local_mpc_setup/mcp_server.py $(HOME)/.local/bin/kubectl-kontext/mcp_server.py
+	@chmod +x $(HOME)/.local/bin/kubectl-kontext/kubectl-kontext
+	@echo "Installed to $(HOME)/.local/bin/kubectl-kontext/"
+	@echo "Update claude_desktop_config.json args to: $(HOME)/.local/bin/kubectl-kontext/mcp_server.py"
+	@echo "Restart Claude Desktop to pick up changes"
 
 remove-index:
 	kubectl krew uninstall kontext
