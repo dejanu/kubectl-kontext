@@ -21,7 +21,7 @@ release: archives sha
 install-mcp:
 	@mkdir -p $(HOME)/.local/bin/kubectl-kontext
 	@cp kubectl-kontext $(HOME)/.local/bin/kubectl-kontext/kubectl-kontext
-	@cp mcp_server.py $(HOME)/.local/bin/kubectl-kontext/mcp_server.py
+	@cp local_mpc_setup/mcp_server.py $(HOME)/.local/bin/kubectl-kontext/mcp_server.py
 	@chmod +x $(HOME)/.local/bin/kubectl-kontext/kubectl-kontext
 	@echo "Installed to $(HOME)/.local/bin/kubectl-kontext/"
 	@echo "Update claude_desktop_config.json args to: $(HOME)/.local/bin/kubectl-kontext/mcp_server.py"
