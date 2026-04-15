@@ -1,0 +1,19 @@
+# Go build artifacts
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test artifacts
+*.test
+*.out
+coverage.out
+
+# Go workspace and local env files
+go.work
+go.work.sum
+.env
+
