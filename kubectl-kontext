@@ -107,12 +107,21 @@ echo ""
 
 # 1. Cluster Overview
 echo "## CLUSTER OVERVIEW"
-kubectl version --short 2>/dev/null || kubectl version | grep -E "Server|Client" | head -2
+CLIENT_VER=$(kubectl version --client -o json 2>/dev/null | jq -r '.clientVersion.gitVersion // empty' 2>/dev/null)
+SERVER_VER=$(kubectl version -o json 2>/dev/null | jq -r '.serverVersion.gitVersion // empty' 2>/dev/null)
+echo "Client Version: ${CLIENT_VER:-unknown}"
+echo "Server Version: ${SERVER_VER:-unknown}"
 echo ""
 
 # 2. Node Summary
 echo "## NODES"
 jq -r '
+  # Format raw Ki/Mi/Gi memory to human-readable Gi
+  def fmt_node_mem:
+    if endswith("Ki") then (rtrimstr("Ki") | tonumber / 1048576 | . * 10 | round / 10 | tostring + "Gi")
+    elif endswith("Mi") then (rtrimstr("Mi") | tonumber / 1024 | . * 10 | round / 10 | tostring + "Gi")
+    elif endswith("Gi") then .
+    else . end;
   ["NAME","STATUS","ROLES","VERSION","CPU","MEMORY","PODS_CAPACITY"],
   (.items[] | [
     .metadata.name,
@@ -120,7 +129,7 @@ jq -r '
     ([.metadata.labels | to_entries[] | select(.key | startswith("node-role.kubernetes.io/")) | .key | ltrimstr("node-role.kubernetes.io/")] | if length > 0 then join(",") else "<none>" end),
     .status.nodeInfo.kubeletVersion,
     .status.allocatable.cpu,
-    .status.allocatable.memory,
+    (.status.allocatable.memory | fmt_node_mem),
     .status.allocatable.pods
   ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
@@ -294,7 +303,12 @@ fi
 # 5. Resource Summary
 echo "## RESOURCE SUMMARY"
 echo "Pods by namespace:"
-jq -r '.items[].metadata.namespace' "$PODS_JSON" | sort | uniq -c | sort -rn | head -15
+NS_COUNTS=$(jq -r '.items[].metadata.namespace' "$PODS_JSON" | sort | uniq -c | sort -rn)
+NS_TOTAL=$(echo "$NS_COUNTS" | wc -l | tr -d ' ')
+echo "$NS_COUNTS" | head -15
+if [[ "$NS_TOTAL" -gt 15 ]]; then
+    echo "  ... and $((NS_TOTAL - 15)) more namespaces"
+fi
 echo ""
 
 # 6. Workload Readiness
@@ -510,7 +524,11 @@ echo ""
 # 13. PodDisruptionBudgets
 echo "## POD DISRUPTION BUDGETS"
 PDB_OUTPUT=$(cat "$TMPDIR/pdb.txt")
-if [[ -n "$PDB_OUTPUT" ]]; then echo "$PDB_OUTPUT"; else echo "None configured"; fi
+if [[ -n "$PDB_OUTPUT" ]]; then
+    (echo "NAMESPACE NAME MIN-AVAILABLE MAX-UNAVAILABLE ALLOWED-DISRUPTIONS AGE"; echo "$PDB_OUTPUT") | column -t
+else
+    echo "None configured"
+fi
 echo ""
 
 # 14. LimitRanges and ResourceQuotas
@@ -543,10 +561,13 @@ jq -r '
   ]) | @tsv' "$NODES_JSON" | column -t
 echo ""
 
-# 17. K3s Specific (if applicable)
-echo "## K3S CONFIG (if applicable)"
-jq -r '.items[0].metadata.annotations["k3s.io/node-args"] // empty' "$NODES_JSON" 2>/dev/null | jq -r 'join(" ")' 2>/dev/null || echo "Not a K3s cluster or config not exposed"
-echo ""
+# 17. K3s Specific — only shown on K3s clusters
+K3S_CONFIG=$(jq -r '.items[0].metadata.annotations["k3s.io/node-args"] // empty' "$NODES_JSON" 2>/dev/null | jq -r 'join(" ")' 2>/dev/null)
+if [[ -n "$K3S_CONFIG" ]]; then
+    echo "## K3S CONFIG"
+    echo "$K3S_CONFIG"
+    echo ""
+fi
 
 echo "=== END OF REPORT ==="
 } 2>&1
