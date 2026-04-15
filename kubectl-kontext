@@ -115,7 +115,7 @@ jq -r '
   ["NAME","STATUS","ROLES","VERSION","CPU","MEMORY","PODS_CAPACITY"],
   (.items[] | [
     .metadata.name,
-    (if (.status.conditions[] | select(.type=="Ready") | .status) == "True" then "True" else "False" end),
+    (if (.status.conditions[] | select(.type=="Ready") | .status) == "True" then "Ready" else "NotReady" end),
     (.metadata.labels["node-role.kubernetes.io/control-plane"] // "<none>"),
     .status.nodeInfo.kubeletVersion,
     .status.allocatable.cpu,
