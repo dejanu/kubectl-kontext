@@ -380,34 +380,38 @@ fi
 echo ""
 
 # 7. Pods Without Resource Configuration
+# Lists individual pods when count <= 20; groups by namespace above that threshold
+# to keep AI context concise and count consistent with the Quick Summary.
 echo "## PODS WITHOUT RESOURCE LIMITS"
-PODS_LIMITS_OUTPUT=$(jq -r '
-[.items[] |
-select(.status.phase == "Running") |
-select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {})) |
-[.metadata.namespace, .metadata.name] | @tsv] | unique[]' "$PODS_JSON" 2>/dev/null | head -30)
-if [[ -n "$PODS_LIMITS_OUTPUT" ]]; then
-    echo "$PODS_LIMITS_OUTPUT"
-    echo ""
-    echo "Count: $(echo "$PODS_LIMITS_OUTPUT" | wc -l | tr -d ' ')"
-else
-    echo "None"
-fi
+jq -r '
+  [.items[] |
+    select(.status.phase == "Running") |
+    select(any(.spec.containers[]; .resources.limits == null or .resources.limits == {}))] |
+  if length == 0 then "None"
+  elif length <= 20 then
+    "Count: \(length)",
+    (.[] | "\(.metadata.namespace)\t\(.metadata.name)")
+  else
+    "Count: \(length) (grouped by namespace):",
+    (group_by(.metadata.namespace)[] |
+      "\(.[0].metadata.namespace)\t\(length) pods")
+  end' "$PODS_JSON" 2>/dev/null
 echo ""
 
 echo "## PODS WITHOUT RESOURCE REQUESTS"
-PODS_REQUESTS_OUTPUT=$(jq -r '
-[.items[] |
-select(.status.phase == "Running") |
-select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {})) |
-[.metadata.namespace, .metadata.name] | @tsv] | unique[]' "$PODS_JSON" 2>/dev/null | head -30)
-if [[ -n "$PODS_REQUESTS_OUTPUT" ]]; then
-    echo "$PODS_REQUESTS_OUTPUT"
-    echo ""
-    echo "Count: $(echo "$PODS_REQUESTS_OUTPUT" | wc -l | tr -d ' ')"
-else
-    echo "None"
-fi
+jq -r '
+  [.items[] |
+    select(.status.phase == "Running") |
+    select(any(.spec.containers[]; .resources.requests == null or .resources.requests == {}))] |
+  if length == 0 then "None"
+  elif length <= 20 then
+    "Count: \(length)",
+    (.[] | "\(.metadata.namespace)\t\(.metadata.name)")
+  else
+    "Count: \(length) (grouped by namespace):",
+    (group_by(.metadata.namespace)[] |
+      "\(.[0].metadata.namespace)\t\(length) pods")
+  end' "$PODS_JSON" 2>/dev/null
 echo ""
 
 # 8. High Memory Limit Pods (Top 10)
