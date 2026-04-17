@@ -11,6 +11,9 @@
 
 ```bash
 uv run mcp_server.py
+
+# inspector to debug mcp server
+npx @modelcontextprotocol/inspector uv run mcp_server.py
 ```
 
 `uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`. No `pip install` or virtualenv setup required.

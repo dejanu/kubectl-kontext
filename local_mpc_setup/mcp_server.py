@@ -3,7 +3,8 @@
 # requires-python = ">=3.10"
 # dependencies = ["mcp>=1.0.0"]
 # ///
-"""kubectl-kontext MCP Server
+"""
+MCP server for kubectl-kontext
 
 MCP server that wraps the kubectl-kontext plugin
 and exposes it as tools to Claude Desktop (or any MCP client).
