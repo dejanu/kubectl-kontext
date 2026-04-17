@@ -45,7 +45,7 @@
 sequenceDiagram
     actor User
     participant CD as Claude Desktop
-    participant MCP as mcp_server.py
+    participant MCP as mcp_server
     participant KK as kubectl-kontext
     participant K8s as Kubernetes API
 
