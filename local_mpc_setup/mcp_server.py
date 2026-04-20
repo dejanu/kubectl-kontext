@@ -3,7 +3,8 @@
 # requires-python = ">=3.10"
 # dependencies = ["mcp>=1.0.0"]
 # ///
-"""kubectl-kontext MCP Server
+"""
+MCP server for kubectl-kontext
 
 MCP server that wraps the kubectl-kontext plugin
 and exposes it as tools to Claude Desktop (or any MCP client).
@@ -74,6 +75,23 @@ def get_current_context() -> str:
             marker = " *" if ctx.strip() == current.stdout.strip() else "  "
             lines.append(f"{marker} {ctx.strip()}")
     return "\n".join(lines)
+
+
+@mcp.tool()
+def switch_context(context_name: str) -> str:
+    """Switch the active kubectl context.
+
+    Use get_current_context first to list available contexts,
+    then call this with the desired context name.
+    """
+    result = subprocess.run(
+        ["kubectl", "config", "use-context", context_name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return f"Failed to switch context: {result.stderr.strip()}"
+    return result.stdout.strip()
 
 
 if __name__ == "__main__":

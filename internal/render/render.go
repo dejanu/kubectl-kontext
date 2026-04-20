@@ -165,7 +165,7 @@ func Build(ctx context.Context, cache collector.Cache) (string, error) {
 	write := func(s string) { b.WriteString(s) }
 	line := func(s string) { b.WriteString(s + "\n") }
 
-	line("=== KUBERNETES CLUSTER ASSESSMENT REPORT ===")
+	// Header already printed by main to satisfy stdin timeouts of piped consumers.
 	clusterName := strings.TrimSpace(runOrFallback(ctx, "unknown", "kubectl", "config", "current-context"))
 	clusterServer := strings.TrimSpace(runOrFallback(ctx, "unknown", "kubectl", "config", "view", "--minify", "-o", "jsonpath={.clusters[0].cluster.server}"))
 	line("Cluster: " + clusterName)

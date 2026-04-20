@@ -12,14 +12,14 @@ import (
 )
 
 func usage() string {
-	return `kubectl kontext (Go) - Cluster kontext for AI analysis
+	return `kubectl kontext - Cluster kontext for AI analysis
 
 Usage:
-  go run ./cmd/kubectl-kontext-go
+  kubectl kontext
   go run ./cmd/kubectl-kontext-go --help
 
 Examples:
-  go run ./cmd/kubectl-kontext-go | claude -p 'List critical issues and recommendations'
+  kubectl kontext | claude -p 'List critical issues and recommendations'
 `
 }
 
@@ -44,6 +44,10 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
+
+	// Write header immediately so piped consumers (e.g. claude -p) receive
+	// data within their stdin timeout while collection is still running.
+	fmt.Println("=== KUBERNETES CLUSTER ASSESSMENT REPORT ===")
 
 	cache, err := collector.Collect(ctx)
 	if err != nil {

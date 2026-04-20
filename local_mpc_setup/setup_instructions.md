@@ -11,6 +11,9 @@
 
 ```bash
 uv run mcp_server.py
+
+# inspector to debug mcp server
+npx @modelcontextprotocol/inspector uv run mcp_server.py
 ```
 
 `uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`. No `pip install` or virtualenv setup required.
@@ -21,7 +24,7 @@ Claude Desktop manages the MCP server lifecycle via `claude_desktop_config.json`
 
 > **Note:** Claude Desktop does not expand `~` in paths — use absolute paths only.
 
-1. Run `make install-mcp` to get the exact path, then add it to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+1. Run `make install-mcp` to get the exact path, configure claude-desktop via `~/Library/Application\ Support/Claude/claude_desktop_config.json`, i.e.:
 
 ```json
 {
@@ -46,10 +49,13 @@ Claude Desktop manages the MCP server lifecycle via `claude_desktop_config.json`
 
 ## Available tools
 
+Mcp uses [FastMCP](https://gofastmcp.com/getting-started/welcome) framework with stdio transport communication layer to connect MCP servers to clients.
+
 | Tool | Description |
 |------|-------------|
 | `get_cluster_report` | Runs `kubectl-kontext` and returns the full cluster assessment report |
 | `get_current_context` | Lists kubeconfig contexts and shows the active one |
+| `switch_context` | Switches the active kubectl context by name (no restart needed) |
 
 ## Example prompts
 
