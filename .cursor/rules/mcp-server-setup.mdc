@@ -1,0 +1,26 @@
+---
+description: MCP server setup and safety workflow for kubectl-kontext
+alwaysApply: true
+---
+
+# MCP Server Setup (kubectl-kontext)
+
+When working on MCP integration or setup, follow `local_mpc_setup/setup_instructions.md` as the canonical workflow.
+
+- Use `make install-mcp` to install `kubectl-kontext` and `mcp_server.py` under `$HOME/.local/bin/kubectl-kontext/`.
+- Configure Claude Desktop with absolute paths only (`~` is not expanded).
+- Keep MCP launch command as `uv run /absolute/path/to/mcp_server.py`.
+- Ensure `KUBECONFIG` is explicitly set in Claude Desktop MCP server env.
+- Verify tools exposed by MCP are `get_cluster_report`, `get_current_context`, and `switch_context`.
+
+## Safety checks before changes
+
+- Do not introduce new hard dependencies beyond current Python + FastMCP usage unless explicitly requested.
+- Preserve subprocess-based behavior for `kubectl` context inspection/switching.
+- Keep `get_cluster_report` behavior aligned with the local `kubectl-kontext` executable.
+
+## Expected validation
+
+- `make install-mcp` completes successfully.
+- `uv run local_mpc_setup/mcp_server.py` starts without import/runtime errors.
+- Claude Desktop config points to the installed absolute script path.

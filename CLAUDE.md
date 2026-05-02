@@ -8,7 +8,12 @@ Kubernetes cluster kontextment toolkit that generates structured reports optimiz
 
 ## Key Files
 
-- **`kubectl-kontext`** — kubectl plugin (install to PATH, invoke as `kubectl kontext`). Has `--help` and checks for `jq` dependency.
+- **`kubectl-kontext`** — Bash kubectl plugin (install to PATH, invoke as `kubectl kontext`). Primary release artifact. Has `--help` and checks for `jq` dependency.
+- **`cmd/kubectl-kontext-go/main.go`** — Go port entry point. Dependency checks, wires collector → render → stdout.
+- **`internal/collector/collector.go`** — Go Phase 1 + Phase 2: runs all `kubectl` calls in goroutines via `sync.WaitGroup`, writes results to a temp `Cache`.
+- **`internal/render/render.go`** — Go Phase 3: typed Go structs for every Kubernetes resource; reads from `Cache` and assembles the report string.
+- **`local_mpc_setup/mcp_server.py`** — FastMCP server exposing `get_cluster_report`, `get_current_context`, and `switch_context` tools; calls the Go binary as a subprocess.
+- **`go.mod`** — Module `github.com/dejanu/kubectl-kontext`, Go 1.21.
 
 ## Running
 
@@ -22,19 +27,37 @@ kubectl kontext | claude -p 'Analyze...' | glow    # Render markdown in terminal
 
 ## Dependencies
 
+**Bash plugin (`kubectl-kontext`):**
 - `kubectl` with cluster access
 - `jq` for JSON processing
-- `claude` CLI (optional, for piped analysis)
-- Metrics server (optional, for actual resource usage via `kubectl top`)
+
+**Go port (`cmd/kubectl-kontext-go`):**
+- Go 1.21+
+- `kubectl` with cluster access
+- `jq` (still required at runtime — render layer shells out to it)
+
+**MCP server (`local_mpc_setup/mcp_server.py`):**
+- Python with `fastmcp` installed (see `local_mpc_setup/setup_instructions.md`)
+- The Go binary (or Bash script) in PATH
+
+**Optional (all variants):**
+- Metrics server (for `kubectl top` sections)
+- `claude` CLI (for piped analysis)
 
 ## Architecture
 
-Single-file bash script using `set -euo pipefail`. Uses a temp directory for caching and parallel execution.
+Two parallel implementations share the same three-phase structure. The Bash script is the primary release artifact; the Go port is in active development alongside it.
 
-**Three phases:**
+**Bash plugin** (`kubectl-kontext`): single file, `set -euo pipefail`, temp directory for caching and parallel execution.
+
+**Go port** (`cmd/kubectl-kontext-go` + `internal/`): `collector` package handles Phases 1–2 with goroutines; `render` package handles Phase 3 with typed structs.
+
+**MCP server** (`local_mpc_setup/mcp_server.py`): FastMCP server that wraps the binary as a tool callable from Claude Desktop or any MCP client.
+
+**Three phases (both implementations):**
 1. **Phase 1** — Fetch heavy JSON data in parallel (`pods`, `nodes`, `events`), cached to temp files
 2. **Phase 2** — Run independent lightweight kubectl calls in parallel (storageclasses, PDBs, limitranges, quotas, networkpolicies, deployments, statefulsets, daemonsets, rollouts, `kubectl top`)
-3. **Phase 3** — Assemble report sequentially from cached data using `jq` (minimal API calls)
+3. **Phase 3** — Assemble report sequentially from cached data (Bash: `jq`; Go: typed struct parsing)
 
 **Key optimizations:**
 - `kubectl get pods -A -o json` fetched once and reused across ~6 sections
