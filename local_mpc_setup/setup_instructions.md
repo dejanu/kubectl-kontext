@@ -16,11 +16,24 @@ uv run mcp_server.py
 npx @modelcontextprotocol/inspector uv run mcp_server.py
 ```
 
-`uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`. No `pip install` or virtualenv setup required.
+No `pip install` or virtualenv setup required, `uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`.
 
-## How to connect from Claude Desktop
+### Add mcp server to claude desktop:
 
-Claude Desktop manages the MCP server lifecycle via `claude_desktop_config.json`.
+`claude_desktop_config.json` is the equivalent of a process supervisor config — Claude Desktop is the supervisor:
+
+1. Claude Desktop starts → reads `~/Library/Application Support/Claude/claude_desktop_config.json`
+2. Spawns the MCP server as a child process (`uv run mcp_server.py`)
+3. Keeps it running in the background, connected via stdio pipe (not a TCP port)
+4. When you chat, Claude calls tools over that pipe on demand
+5. Claude Desktop quits → child processes are killed
+
+```bash
+# verify the MCP server process is running
+ps aux | grep mcp_server.py | grep -v grep
+```
+
+Connectors are MCP servers with a graphical setup flow. Use them for quick integration with supported services. For integrations not listed in Connectors, add MCP servers manually via settings files, Claude Desktop manages the MCP server lifecycle via `claude_desktop_config.json`.
 
 > **Note:** Claude Desktop does not expand `~` in paths — use absolute paths only.
 
@@ -47,6 +60,19 @@ Claude Desktop manages the MCP server lifecycle via `claude_desktop_config.json`
 3. Open a new conversation — the hammer (tools) icon should appear in the input bar.
 4. Click it to confirm `get_cluster_report` and `get_current_context` are listed.
 
+### Add mcp server to claude code: 
+
+```bash
+#  use --scope user so the config is written to ~/.claude.json and applies across all your Claude Code projects
+# (other scopes local, user, or project)
+
+# add mcp server using STDIO and local scope  
+claude mcp add kubectl-kontext --scope user -e KUBECONFIG=/Users/<your-username>/.kube/config -- uv run /Users/<your-username>/.local/bin/kubectl-kontext/mcp_server.py
+
+# remove mcp server
+claude mcp remove kubectl-kontext
+```
+
 ## Available tools
 
 Mcp uses [FastMCP](https://gofastmcp.com/getting-started/welcome) framework with stdio transport communication layer to connect MCP servers to clients.
@@ -69,18 +95,6 @@ Is this cluster over-provisioned? Suggest rightsizing.
 Which context am I on and what contexts are available?
 ```
 
-## How it works
 
-`claude_desktop_config.json` is the equivalent of a process supervisor config — Claude Desktop is the supervisor:
 
-1. Claude Desktop starts → reads `~/Library/Application Support/Claude/claude_desktop_config.json`
-2. Spawns the MCP server as a child process (`uv run mcp_server.py`)
-3. Keeps it running in the background, connected via stdio pipe (not a TCP port)
-4. When you chat, Claude calls tools over that pipe on demand
-5. Claude Desktop quits → child processes are killed
-
-```bash
-# verify the MCP server process is running
-ps aux | grep mcp_server.py | grep -v grep
-```
 

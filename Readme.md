@@ -44,9 +44,11 @@ kubectl krew search my-index
 kubectl krew install my-index/kontext
 ```
 
-## Usage: leveraging Unix composition
+## Claude Usage: 
 
-* Claude code in headless mode
+* Claude Desktop (use connector to add the MCP server that expose `kubectl kontext` plugin)
+
+* Claude code in headless mode (leveraging Unix composition)
 
 ```bash
 # copy to Clipboard 
