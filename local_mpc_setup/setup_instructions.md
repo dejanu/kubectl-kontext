@@ -37,7 +37,8 @@ Connectors are MCP servers with a graphical setup flow. Use them for quick integ
 
 > **Note:** Claude Desktop does not expand `~` in paths — use absolute paths only.
 
-1. Run `make install-mcp` to get the exact path, configure claude-desktop via `~/Library/Application\ Support/Claude/claude_desktop_config.json`, i.e.:
+1. Run `make install-mcp` to get the exact path, configure claude-desktop via `~/Library/Application\ Support/Claude/claude_desktop_config.json`:
+
 
 ```json
 {
@@ -49,16 +50,19 @@ Connectors are MCP servers with a graphical setup flow. Use them for quick integ
         "/Users/<your-username>/.local/bin/kubectl-kontext/mcp_server.py"
       ],
       "env": {
-        "KUBECONFIG": "/Users/<your-username>/.kube/config"
+        "KUBECONFIG": "/Users/<your-username>/.local/bin/kubectl-kontext/active-config"
       }
     }
   }
 }
 ```
 
-2. Quit and reopen Claude Desktop.
-3. Open a new conversation — the hammer (tools) icon should appear in the input bar.
-4. Click it to confirm `get_cluster_report` and `get_current_context` are listed.
+2. Point the desired kubeconfig to `active-config` used by the `kubectl-kontext` mcp server
+
+```bash
+# create/update simlink
+ln -sf  <path-to-desired-kubeconfig> /Users/alexandru.dejanu/.local/bin/kubectl-kontext/active-config 
+```
 
 ### Add mcp server to claude code: 
 
