@@ -13,7 +13,7 @@
                          │                │ spawn + stdio pipe
                          │                ▼
 ┌────────────────────────│────────────────────────────────────────┐
-│                   mcp_server  (FastMCP)                      │
+│                   mcp_server  (FastMCP)                         │
 │                                                                 │
 │   tools:                                                        │
 │   ├── get_cluster_report   ──► subprocess.run(kubectl-kontext)  │
