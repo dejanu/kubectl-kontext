@@ -57,12 +57,14 @@ Connectors are MCP servers with a graphical setup flow. Use them for quick integ
 }
 ```
 
-2. Point the desired kubeconfig to `active-config` used by the `kubectl-kontext` mcp server
+2. Point the desired kubeconfig at `active-config` (the MCP server’s `KUBECONFIG` env always references this path):
 
 ```bash
-# create/update simlink
-ln -sf  <path-to-desired-kubeconfig> /Users/alexandru.dejanu/.local/bin/kubectl-kontext/active-config 
+# Use an absolute path for the kubeconfig file (relative targets can resolve incorrectly).
+ln -sf /absolute/path/to/kubeconfig /Users/<your-username>/.local/bin/kubectl-kontext/active-config
 ```
+
+**If the wrong cluster still appears:** (1) Confirm with `make mcp-verify-kubeconfig` from the repo — it must match what you expect. (2) Restart Claude Desktop / Claude Code after changing the symlink; the MCP subprocess may keep using the previous kubeconfig until it restarts. (3) Ensure the kubeconfig file’s **current-context** is the cluster you want (`kubectl config use-context …`).
 
 ### Add mcp server to claude code: 
 
@@ -71,11 +73,14 @@ ln -sf  <path-to-desired-kubeconfig> /Users/alexandru.dejanu/.local/bin/kubectl-
 # (other scopes local, user, or project)
 
 # add mcp server using STDIO and local scope  
-claude mcp add kubectl-kontext --scope user -e KUBECONFIG=/Users/<your-username>/.kube/config -- uv run /Users/<your-username>/.local/bin/kubectl-kontext/mcp_server.py
+# Put the server name *before* `-e`; otherwise `claude mcp` treats the name as another `-e` token and errors.
+# Quote KUBECONFIG=... as a single argument.
+claude mcp add -s user kubectl-kontext -e "KUBECONFIG=/Users/<your-username>/.local/bin/kubectl-kontext/active-config" -- uv run /Users/<your-username>/.local/bin/kubectl-kontext/mcp_server.py
 
 # remove mcp server
 claude mcp remove kubectl-kontext
 ```
+
 
 ## Available tools
 
