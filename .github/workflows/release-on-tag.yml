@@ -1,0 +1,59 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build tarballs
+        run: make archives
+
+      - name: Compute checksums
+        id: checksums
+        run: |
+          DARWIN_SHA=$(sha256sum kubectl-kontext-darwin-arm64.tar.gz | awk '{print $1}')
+          LINUX_SHA=$(sha256sum kubectl-kontext-linux-arm64.tar.gz | awk '{print $1}')
+          echo "darwin_sha256=${DARWIN_SHA}" >> "$GITHUB_OUTPUT"
+          echo "linux_sha256=${LINUX_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Krew manifest
+        env:
+          TAG: ${{ github.ref_name }}
+          DARWIN_SHA256: ${{ steps.checksums.outputs.darwin_sha256 }}
+          LINUX_SHA256: ${{ steps.checksums.outputs.linux_sha256 }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          # Update version field
+          sed -i "s|version: \"v[^\"]*\"|version: \"${TAG}\"|" plugins/kontext.yaml
+          # Update both download URIs
+          sed -i "s|releases/download/v[^/]*/|releases/download/${TAG}/|g" plugins/kontext.yaml
+          # Update sha256 per platform (darwin first, linux second)
+          awk -v d="${DARWIN_SHA256}" -v l="${LINUX_SHA256}" '
+            /sha256:/ && n==0 { sub(/sha256: "[^"]*"/, "sha256: \"" d "\""); n=1 }
+            /sha256:/ && n==1 { sub(/sha256: "[^"]*"/, "sha256: \"" l "\""); n=2 }
+            { print }
+          ' plugins/kontext.yaml > plugins/kontext.yaml.tmp && mv plugins/kontext.yaml.tmp plugins/kontext.yaml
+          git add plugins/kontext.yaml
+          git diff --cached --quiet || git commit -m "chore: update Krew manifest to ${TAG}"
+          git push origin main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: "*.tar.gz"
