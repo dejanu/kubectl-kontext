@@ -16,7 +16,6 @@ func usage() string {
 
 Usage:
   kubectl kontext
-  go run ./cmd/kubectl-kontext-go --help
 
 Examples:
   kubectl kontext | claude -p 'List critical issues and recommendations'
