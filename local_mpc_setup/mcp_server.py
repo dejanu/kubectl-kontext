@@ -25,9 +25,30 @@ mcp = FastMCP(
         "Kubernetes cluster assessment tool. Call get_cluster_report to fetch "
         "a full health and capacity report from the current cluster. "
         "Prioritise: pending/failed pods, HPAs at max, high restarts, "
-        "resource overcommitment, and missing limits."
+        "resource overcommitment, and missing limits. "
+        "For structured analysis, use the analyze_cluster prompt."
     ),
 )
+
+ANALYZE_CLUSTER_PROMPT = """\
+Analyze the current Kubernetes cluster for critical issues and recommendations.
+
+1. Call `get_current_context` — use the active context in your answer.
+2. Call `get_cluster_report` — base every finding on that report only (no guessing).
+
+Prioritise: NotReady nodes, problem/pending pods, workloads not ready, HPAs at max, \
+high restarts, overcommit, missing limits. Severity: P0 (outage risk), P1 (degraded), \
+P2 (hygiene/capacity).
+
+# Cluster: <context>
+## Executive summary (2–4 sentences)
+## Critical issues (table: Severity | Area | Finding | Evidence — max 10 rows)
+## Recommendations (table: Priority | Issue | Action | Risk if ignored)
+## Next steps (≤5 items)
+
+Cite report `## SECTION` names as evidence. State if sections are empty or metrics \
+are unavailable. No destructive kubectl unless asked.
+"""
 
 
 @mcp.tool()
@@ -92,6 +113,15 @@ def switch_context(context_name: str) -> str:
     if result.returncode != 0:
         return f"Failed to switch context: {result.stderr.strip()}"
     return result.stdout.strip()
+
+
+@mcp.prompt(
+    name="analyze_cluster",
+    description="Analyze cluster: fetch report, list critical issues (P0–P2), recommendations.",
+)
+def analyze_cluster() -> str:
+    """Analyze cluster health: critical issues and recommendations."""
+    return ANALYZE_CLUSTER_PROMPT
 
 
 if __name__ == "__main__":

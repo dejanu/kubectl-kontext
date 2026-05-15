@@ -92,18 +92,10 @@ Mcp uses [FastMCP](https://gofastmcp.com/getting-started/welcome) framework with
 | `get_current_context` | Lists kubeconfig contexts and shows the active one |
 | `switch_context` | Switches the active kubectl context by name (no restart needed) |
 
-## Example prompts
+## Prompt template `/analyze_cluster`
 
-```
-What are the top 3 issues in my cluster?
+Claude Code has a built-in slash command discovery system — it scans for custom commands (from `.claude/commands/` directories) and surfaces them with autocomplete as you type `/`
 
-Are there any pods without resource limits?
+Claude desktop/claude.ai — the `/` autocomplete only shows natively saved custom prompts (ones you've explicitly saved in Claude.ai settings)
 
-Is this cluster over-provisioned? Suggest rightsizing.
-
-Which context am I on and what contexts are available?
-```
-
-
-
-
+The MCP server is advertising the prompt via `prompts/list`.
