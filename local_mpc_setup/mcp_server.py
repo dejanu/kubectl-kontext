@@ -26,82 +26,28 @@ mcp = FastMCP(
         "a full health and capacity report from the current cluster. "
         "Prioritise: pending/failed pods, HPAs at max, high restarts, "
         "resource overcommitment, and missing limits. "
-        "For structured critical-issues analysis, use the "
-        "analyze_cluster_critical_issues prompt."
+        "For structured analysis, use the analyze_cluster prompt."
     ),
 )
 
-CLUSTER_ANALYSIS_PROMPT = """\
-Analyze the current Kubernetes cluster and produce a structured assessment \
-of critical issues and actionable recommendations.
+ANALYZE_CLUSTER_PROMPT = """\
+Analyze the current Kubernetes cluster for critical issues and recommendations.
 
-## Required steps
+1. Call `get_current_context` — use the active context in your answer.
+2. Call `get_cluster_report` — base every finding on that report only (no guessing).
 
-1. Call the `get_current_context` tool and note the active context name.
-2. Call the `get_cluster_report` tool and base every finding on that report only \
-(do not invent or assume cluster state).
+Prioritise: NotReady nodes, problem/pending pods, workloads not ready, HPAs at max, \
+high restarts, overcommit, missing limits. Severity: P0 (outage risk), P1 (degraded), \
+P2 (hygiene/capacity).
 
-## Report sections to review
+# Cluster: <context>
+## Executive summary (2–4 sentences)
+## Critical issues (table: Severity | Area | Finding | Evidence — max 10 rows)
+## Recommendations (table: Priority | Issue | Action | Risk if ignored)
+## Next steps (≤5 items)
 
-Use these `## SECTION` headers from the report:
-
-- `## QUICK SUMMARY (for AI)` — start here for high-level signals
-- `## PROBLEM PODS`, `## RECENT WARNING EVENTS`, `## TOP 10 POD RESTARTS`
-- `## WORKLOAD READINESS` — Deployments, StatefulSets, DaemonSets, Argo \
-Rollouts, HPAs at max replicas
-- `## NODES`, `## NODE RESOURCE ALLOCATION`, `## CLUSTER-WIDE RESOURCE TOTALS`, \
-`## ACTUAL RESOURCE USAGE`, `## RESOURCE SUMMARY`
-- `## PODS WITHOUT RESOURCE LIMITS`, `## PODS WITHOUT RESOURCE REQUESTS`
-- `## POD DISRUPTION BUDGETS`, `## RESOURCE QUOTAS`, `## NETWORK POLICIES`, \
-`## NODE TAINTS`
-
-## Severity guidance
-
-Classify findings as:
-
-- **P0 (critical)** — immediate risk: NotReady nodes, CrashLoopBackOff or \
-long-pending pods, workloads not ready, data-loss or outage risk
-- **P1 (high)** — significant degradation: HPAs at max replicas, high restart \
-counts, severe recurring warning events, dangerous resource overcommit
-- **P2 (medium)** — hygiene or capacity risk: missing limits/requests on \
-important workloads, PDB gaps, quota pressure, notable but non-outage issues
-
-Prioritise: pending/failed pods, HPAs at max, high restarts, resource \
-overcommitment, and missing limits on production-impacting workloads.
-
-## Output format (markdown)
-
-Use exactly this structure:
-
-# Cluster: <context name from get_current_context>
-
-## Executive summary
-(2–4 sentences on overall health and top risks)
-
-## Critical issues
-| Severity | Area | Finding | Evidence (section + detail) |
-|----------|------|---------|------------------------------|
-(list up to 10 rows; if more exist, add a line: "…and N additional issues")
-
-## Recommendations
-| Priority | Issue | Action | Risk if ignored |
-|----------|-------|--------|-----------------|
-(one row per critical/high issue; concrete, actionable steps)
-
-## Observations (non-critical)
-(optional bullets for lower-priority or informational items)
-
-## Next steps
-(ordered checklist, maximum 5 items)
-
-## Guardrails
-
-- If a report section is empty or metrics-server data is missing, state that \
-explicitly; do not fabricate usage or capacity numbers.
-- Cite evidence as the report section name plus the specific pod, namespace, \
-node, or workload involved.
-- Do not suggest destructive kubectl commands (delete, drain, scale-to-zero) \
-unless the user explicitly asks.
+Cite report `## SECTION` names as evidence. State if sections are empty or metrics \
+are unavailable. No destructive kubectl unless asked.
 """
 
 
@@ -170,15 +116,12 @@ def switch_context(context_name: str) -> str:
 
 
 @mcp.prompt(
-    name="analyze_cluster_critical_issues",
-    description=(
-        "Analyze the current Kubernetes cluster: fetch report via tools, "
-        "list critical issues (P0–P2), and provide prioritized recommendations."
-    ),
+    name="analyze_cluster",
+    description="Analyze cluster: fetch report, list critical issues (P0–P2), recommendations.",
 )
-def analyze_cluster_critical_issues() -> str:
-    """Analyze cluster health and return critical issues with recommendations."""
-    return CLUSTER_ANALYSIS_PROMPT
+def analyze_cluster() -> str:
+    """Analyze cluster health: critical issues and recommendations."""
+    return ANALYZE_CLUSTER_PROMPT
 
 
 if __name__ == "__main__":

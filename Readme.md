@@ -48,6 +48,12 @@ kubectl krew install my-index/kontext
 
 * Claude Desktop (use connector to add the MCP server that expose `kubectl kontext` plugin)
 
+```bash
+# prompt examples
+What are the top 3 issues in my cluster?
+Is this cluster over-provisioned? Suggest rightsizing.
+```
+
 * Claude code in headless mode (leveraging Unix composition)
 
 ```bash
