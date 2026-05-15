@@ -33,14 +33,14 @@ go-build:
 install-mcp: go-build
 	@mkdir -p $(MCP_DIR)
 	@cp bin/kubectl-kontext $(MCP_DIR)/kubectl-kontext
-	@cp local_mpc_setup/mcp_server.py $(MCP_DIR)/mcp_server.py
+	@cp local_mcp_setup/mcp_server.py $(MCP_DIR)/mcp_server.py
 	@chmod +x $(MCP_DIR)/kubectl-kontext
 	@if [ ! -e "$(ACTIVE_CONFIG)" ] && [ -f "$(HOME)/.kube/config" ]; then \
 		ln -sf "$(HOME)/.kube/config" "$(ACTIVE_CONFIG)"; \
 		echo "Created symlink $(ACTIVE_CONFIG) -> $(HOME)/.kube/config"; \
 	fi
 	@echo "Installed to $(MCP_DIR)/"
-	@echo "Claude Desktop: see local_mpc_setup/setup_instructions.md"
+	@echo "Claude Desktop: see local_mcp_setup/setup_instructions.md"
 	@echo "Kubeconfig pointer for MCP (optional): ln -sf /absolute/path/to/config $(ACTIVE_CONFIG)"
 
 add-mcp-server-claude-code: install-mcp

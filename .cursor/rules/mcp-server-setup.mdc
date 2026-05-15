@@ -5,7 +5,7 @@ alwaysApply: true
 
 # MCP Server Setup (kubectl-kontext)
 
-When working on MCP integration or setup, follow `local_mpc_setup/setup_instructions.md` as the canonical workflow.
+When working on MCP integration or setup, follow `local_mcp_setup/setup_instructions.md` as the canonical workflow.
 
 - Use `make install-mcp` to install `kubectl-kontext` and `mcp_server.py` under `$HOME/.local/bin/kubectl-kontext/`.
 - Configure Claude Desktop with absolute paths only (`~` is not expanded).
@@ -22,5 +22,5 @@ When working on MCP integration or setup, follow `local_mpc_setup/setup_instruct
 ## Expected validation
 
 - `make install-mcp` completes successfully.
-- `uv run local_mpc_setup/mcp_server.py` starts without import/runtime errors.
+- `uv run local_mcp_setup/mcp_server.py` starts without import/runtime errors.
 - Claude Desktop config points to the installed absolute script path.

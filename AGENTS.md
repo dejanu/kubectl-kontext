@@ -7,7 +7,7 @@ This document applies **only** to the release artifact **`kubectl-kontext`** (th
 | Area | Where to look |
 |------|----------------|
 | Go implementation (`cmd/`, `internal/`) | `CLAUDE.md`, `go.mod` |
-| MCP / Claude Desktop (`local_mpc_setup/`) | `local_mpc_setup/setup_instructions.md`, `.cursor/rules/mcp-server-setup.mdc` |
+| MCP / Claude Desktop (`local_mcp_setup/`) | `local_mcp_setup/setup_instructions.md`, `.cursor/rules/mcp-server-setup.mdc` |
 | Human-facing install and piping examples | `Readme.md` |
 
 ---
@@ -27,7 +27,7 @@ plugins/kontext.yaml     Krew manifest — version and sha256 per platform
 Readme.md                Install instructions and usage examples
 ```
 
-Release tarballs and checksums for the **Bash script** live at the repository root. The repo also contains **Go** sources and **`local_mpc_setup/`** (Python MCP); those are out of scope for the rules below unless you are explicitly tasked there—then use the table at the top.
+Release tarballs and checksums for the **Bash script** live at the repository root. The repo also contains **Go** sources and **`local_mcp_setup/`** (Python MCP); those are out of scope for the rules below unless you are explicitly tasked there—then use the table at the top.
 
 ---
 

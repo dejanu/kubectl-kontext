@@ -12,7 +12,7 @@ Kubernetes cluster kontextment toolkit that generates structured reports optimiz
 - **`cmd/kubectl-kontext-go/main.go`** — Go port entry point. Dependency checks, wires collector → render → stdout.
 - **`internal/collector/collector.go`** — Go Phase 1 + Phase 2: runs all `kubectl` calls in goroutines via `sync.WaitGroup`, writes results to a temp `Cache`.
 - **`internal/render/render.go`** — Go Phase 3: typed Go structs for every Kubernetes resource; reads from `Cache` and assembles the report string.
-- **`local_mpc_setup/mcp_server.py`** — FastMCP server exposing `get_cluster_report`, `get_current_context`, and `switch_context` tools; calls the Go binary as a subprocess.
+- **`local_mcp_setup/mcp_server.py`** — FastMCP server exposing `get_cluster_report`, `get_current_context`, and `switch_context` tools; calls the Go binary as a subprocess.
 - **`go.mod`** — Module `github.com/dejanu/kubectl-kontext`, Go 1.21.
 
 ## Running
@@ -36,8 +36,8 @@ kubectl kontext | claude -p 'Analyze...' | glow    # Render markdown in terminal
 - `kubectl` with cluster access
 - `jq` (still required at runtime — render layer shells out to it)
 
-**MCP server (`local_mpc_setup/mcp_server.py`):**
-- Python with `fastmcp` installed (see `local_mpc_setup/setup_instructions.md`)
+**MCP server (`local_mcp_setup/mcp_server.py`):**
+- Python with `fastmcp` installed (see `local_mcp_setup/setup_instructions.md`)
 - The Go binary (or Bash script) in PATH
 
 **Optional (all variants):**
@@ -52,7 +52,7 @@ Two parallel implementations share the same three-phase structure. The Bash scri
 
 **Go port** (`cmd/kubectl-kontext-go` + `internal/`): `collector` package handles Phases 1–2 with goroutines; `render` package handles Phase 3 with typed structs.
 
-**MCP server** (`local_mpc_setup/mcp_server.py`): FastMCP server that wraps the binary as a tool callable from Claude Desktop or any MCP client.
+**MCP server** (`local_mcp_setup/mcp_server.py`): FastMCP server that wraps the binary as a tool callable from Claude Desktop or any MCP client.
 
 **Three phases (both implementations):**
 1. **Phase 1** — Fetch heavy JSON data in parallel (`pods`, `nodes`, `events`), cached to temp files
