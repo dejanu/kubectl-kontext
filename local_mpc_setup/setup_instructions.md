@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - set desired cluster by updating `KUBECONFIG` env var and `kubectl` configured with cluster access
-- `uv` — Python package manager ([install](https://docs.astral.sh/uv/getting-started/installation/))
+- `uv` package manager ([install](https://docs.astral.sh/uv/getting-started/installation/)). No `pip install` or virtualenv setup required, `uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`.
 - Claude Desktop app (Mac/Windows)
 - Both `kubectl-kontext` and `mcp_server.py` installed via `make install-mcp` (places them under `$HOME/.local/bin/kubectl-kontext/`, no `sudo` required)
 
@@ -12,11 +12,11 @@
 ```bash
 uv run mcp_server.py
 
-# inspector to debug mcp server
+# start inspector MCP debug
+uv run --with "mcp[cli]" mcp dev mcp_server.py
 npx @modelcontextprotocol/inspector uv run mcp_server.py
 ```
 
-No `pip install` or virtualenv setup required, `uv` resolves and installs dependencies automatically from the inline block at the top of `mcp_server.py`.
 
 ### Add mcp server to claude desktop:
 
